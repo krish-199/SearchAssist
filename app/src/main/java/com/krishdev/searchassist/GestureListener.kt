@@ -1,0 +1,157 @@
+package com.krishdev.searchassist
+
+import android.annotation.TargetApi
+import android.app.Activity
+import android.graphics.Bitmap
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.view.GestureDetector
+import android.view.MotionEvent
+import android.util.Log
+import android.view.PixelCopy
+import android.content.Intent
+import android.content.Context
+import androidx.annotation.RequiresApi
+import androidx.compose.ui.platform.LocalContext
+
+class GestureListener(private val context: Context) : GestureDetector.SimpleOnGestureListener() {
+
+    companion object {
+        const val TAG = "GestureListener"
+
+        /**
+         * Returns a human-readable string describing the type of touch that triggered a MotionEvent.
+         */
+        private fun getTouchType(e: MotionEvent): String {
+            var touchTypeDescription = " "
+            val touchType = e.getToolType(0)
+
+            touchTypeDescription += when (touchType) {
+                MotionEvent.TOOL_TYPE_FINGER -> "(finger)"
+                MotionEvent.TOOL_TYPE_STYLUS -> {
+                    var description = "(stylus, pressure: ${e.pressure}"
+                        description += ", buttons pressed: ${getButtonsPressed(e)}"
+                    description + ")"
+                }
+                MotionEvent.TOOL_TYPE_ERASER -> "(eraser)"
+                MotionEvent.TOOL_TYPE_MOUSE -> "(mouse)"
+                else -> "(unknown tool)"
+            }
+
+            return touchTypeDescription
+        }
+
+        /**
+         * Returns a human-readable string listing all the stylus buttons that were pressed when the
+         * input MotionEvent occurred.
+         */
+        private fun getButtonsPressed(e: MotionEvent): String {
+            var buttons = ""
+
+            if (e.isButtonPressed(MotionEvent.BUTTON_PRIMARY)) {
+                buttons += " primary"
+            }
+
+            if (e.isButtonPressed(MotionEvent.BUTTON_SECONDARY)) {
+                buttons += " secondary"
+            }
+
+            if (e.isButtonPressed(MotionEvent.BUTTON_TERTIARY)) {
+                buttons += " tertiary"
+            }
+
+            if (e.isButtonPressed(MotionEvent.BUTTON_BACK)) {
+                buttons += " back"
+            }
+
+            if (e.isButtonPressed(MotionEvent.BUTTON_FORWARD)) {
+                buttons += " forward"
+            }
+
+            if (buttons.isEmpty()) {
+                buttons = "none"
+            }
+
+            return buttons
+        }
+    }
+
+    // BEGIN_INCLUDE(init_gestureListener)
+    override fun onSingleTapUp(e: MotionEvent): Boolean {
+        // Up motion completing a single tap occurred.
+        Log.i(TAG, "Single Tap Up" + getTouchType(e))
+        return super.onSingleTapUp(e)
+    }
+
+    override fun onLongPress(e: MotionEvent) {
+        // Touch has been long enough to indicate a long press.
+        // Does not indicate motion is complete yet (no up event necessarily)
+        Log.i(TAG, "Long Press" + getTouchType(e))
+        return super.onLongPress(e)
+    }
+
+    override fun onScroll(
+        e1: MotionEvent?,
+        e2: MotionEvent,
+        distanceX: Float,
+        distanceY: Float
+    ): Boolean {
+        // User attempted to scroll
+        Log.i(TAG, "Scroll" + e1?.let { getTouchType(it) })
+        return super.onScroll(e1, e2, distanceX, distanceY)
+    }
+
+    override fun onFling(
+        e1: MotionEvent?,
+        e2: MotionEvent,
+        velocityX: Float,
+        velocityY: Float
+    ): Boolean {
+        // Fling event occurred. Notification of this one happens after an "up" event.
+        val intent = Intent("com.krishdev.ACTION_GATHER_ACCESSIBILITY_TAGS")
+        Log.i(TAG, "Fling" + e1?.let { getTouchType(it) })
+        if (velocityY > 0) {
+            context.sendBroadcast(intent)
+            Log.i(TAG, "Fling downward")
+        } else {
+            Log.i(TAG, "fling upward")
+
+        }
+        return super.onFling(e1, e2, velocityX, velocityY)
+    }
+
+    override fun onShowPress(e: MotionEvent) {
+        // User performed a down event, and hasn't moved yet.
+        Log.i(TAG, "Show Press" + getTouchType(e))
+        return super.onShowPress(e)
+    }
+
+    override fun onDown(e: MotionEvent): Boolean {
+        // "Down" event - User touched the screen.
+        Log.i(TAG, "Down" + getTouchType(e))
+        return super.onDown(e)
+    }
+
+    override fun onDoubleTap(e: MotionEvent): Boolean {
+        // User tapped the screen twice.
+        Log.i(TAG, "Double tap" + getTouchType(e))
+        return super.onDoubleTap(e)
+    }
+
+    override fun onDoubleTapEvent(e: MotionEvent): Boolean {
+        // Since double-tap is actually several events which are considered one aggregate
+        // gesture, there's a separate callback for an individual event within the doubletap
+        // occurring. This occurs for down, up, and move.
+        Log.i(TAG, "Event within double tap" + getTouchType(e))
+        return super.onDoubleTapEvent(e)
+    }
+
+    override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+        // A confirmed single-tap event has occurred. Only called when the detector has
+        // determined that the first tap stands alone, and is not part of a double tap.
+        Log.i(TAG, "Single tap confirmed" + getTouchType(e))
+        return super.onSingleTapConfirmed(e)
+    }
+    // END_INCLUDE(init_gestureListener)
+}
