@@ -1,39 +1,46 @@
 package com.krishdev.searchassist
 
 import android.content.Intent
-import android.content.Context
-import android.os.Bundle
-import android.os.Build
-import android.util.Log
-import android.media.projection.MediaProjectionManager
-import android.media.projection.MediaProjection
-import android.app.Activity
 import android.net.Uri
+import android.os.Bundle
 import android.provider.Settings
-import android.view.accessibility.AccessibilityManager
 import android.text.TextUtils
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.platform.LocalContext
-import androidx.core.content.ContextCompat.startForegroundService
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.ActivityResultLauncher
+
 
 class MainActivity : ComponentActivity() {
 
 
     companion object {
-        private const val REQUEST_CODE_OVERLAY_PERMISSION = 1001
+        private lateinit var overlayPermissionLauncher: ActivityResultLauncher<Intent>
     }
 
 
@@ -44,26 +51,23 @@ class MainActivity : ComponentActivity() {
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+        super.onCreate(savedInstanceState);
+
+        overlayPermissionLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { _ ->
+            if (Settings.canDrawOverlays(this)) {
+                // Permission granted
+                Log.d("MainActivity", "Overlay permission granted")
+            } else {
+                // Permission denied
+                Log.d("MainActivity", "Overlay permission denied")
+            }
+        }
+
 
         setContent {
                 // Main content
                 GestureLoggerApp()
         }
-
-        // Check overlay permission
-//        if (!Settings.canDrawOverlays(this)) {
-//            val intent = Intent(
-//                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-//                Uri.parse("package:$packageName")
-//            )
-//            startActivityForResult(intent, REQUEST_CODE_OVERLAY_PERMISSION)
-//        } else {
-//            // Check if the accessibility service is enabled
-//            if (!isAccessibilityServiceEnabled()) {
-//                promptEnableAccessibilityService()
-//            }
-//        }
     }
 
 
@@ -86,15 +90,6 @@ class MainActivity : ComponentActivity() {
 
     // Function to start the Accessibility Service
     private fun startAccessibilityService() {
-                // Check if the SYSTEM_ALERT_WINDOW permission is granted
-        if (!Settings.canDrawOverlays(this)) {
-            // Request the permission
-            val intent = Intent(
-                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                Uri.parse("package:$packageName")
-            )
-            startActivityForResult(intent, REQUEST_CODE_OVERLAY_PERMISSION)
-        }
         val intent = Intent(this, GestureDetectionService::class.java)
         startService(intent)
         Log.d("MainActivity", "Accessibility Service Started")

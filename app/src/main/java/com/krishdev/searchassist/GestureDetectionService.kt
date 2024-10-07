@@ -1,31 +1,24 @@
 package com.krishdev.searchassist
 
-import android.accessibilityservice.AccessibilityService
-import android.accessibilityservice.AccessibilityServiceInfo
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
-import android.content.Intent
-import android.content.Context
 import android.content.BroadcastReceiver
-import android.graphics.PixelFormat
-import android.graphics.Bitmap
+import android.content.Context
+import android.content.Intent
 import android.graphics.Color
-import android.os.IBinder
+import android.graphics.PixelFormat
 import android.os.Build
-import android.util.Log
-import android.view.GestureDetector
-import android.view.MotionEvent
-import android.view.View
-import android.view.WindowManager
-import android.view.accessibility.AccessibilityEvent
-import android.view.accessibility.AccessibilityNodeInfo
-import android.view.accessibility.AccessibilityManager
-import android.view.Gravity
+import android.os.IBinder
 import android.provider.Settings
 import android.text.TextUtils
-import androidx.compose.ui.input.pointer.pointerInput
+import android.util.Log
+import android.view.GestureDetector
+import android.view.Gravity
+import android.view.View
+import android.view.WindowManager
+import android.view.accessibility.AccessibilityNodeInfo
 import androidx.core.app.NotificationCompat
 
 class GestureDetectionService : Service() {
@@ -37,7 +30,6 @@ class GestureDetectionService : Service() {
 
     companion object {
         const val CHANNEL_ID = "GestureDetectionChannel"
-        const val NOTIFICATION_ID = 1
     }
 
     private val configReceiver = object : BroadcastReceiver() {
@@ -56,7 +48,7 @@ class GestureDetectionService : Service() {
         createNotificationChannel()
         val gestureListener = GestureListener(this)
         gestureDetector = GestureDetector(this, gestureListener)
-        startForeground(NOTIFICATION_ID, createNotification())
+//       startForeground(NOTIFICATION_ID, createNotification())
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
 
         // Start gesture detection logic (you will need to add the appropriate detection logic)
@@ -152,48 +144,22 @@ class GestureDetectionService : Service() {
     }
 
     private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val serviceChannel = NotificationChannel(
-                CHANNEL_ID,
-                "Gesture Detection Channel",
-                NotificationManager.IMPORTANCE_DEFAULT
-            )
-            val manager = getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(serviceChannel)
-        }
+        val serviceChannel = NotificationChannel(
+            CHANNEL_ID,
+            "Gesture Detection Channel",
+            NotificationManager.IMPORTANCE_DEFAULT
+        )
+        val manager = getSystemService(NotificationManager::class.java)
+        manager.createNotificationChannel(serviceChannel)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // Keep the service running until explicitly stopped
         return START_STICKY
     }
-    
-    private fun extractTextFromNode(node: AccessibilityNodeInfo) {
-        if (node.text != null) {
-            Log.d("Node Text", node.text.toString())
-                // Perform click action on the node
-            if (node.text.toString().contains("search", ignoreCase = true) && node.isClickable) {
-                node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-                Log.d("GestureDetectionService", "Node clicked")
-            } else {
-                Log.d("GestureDetectionService", "Node is not clickable")
-            }
-        }
-    
-        // Recursively traverse child nodes
-        for (i in 0 until node.childCount) {
-            val childNode = node.getChild(i)
-            if (childNode != null) {
-                extractTextFromNode(childNode)
-            }
-        }
-    }
 
     // Call this to stop gesture detection and stop the service
     private fun stopGestureDetection() {
-        // Stop the foreground notification
-        stopForeground(true)
-
         // Stop the service
         stopSelf()
     }
@@ -201,7 +167,7 @@ class GestureDetectionService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         // Stop gesture detection when the service is destroyed
-        removeOverlays();
+        removeOverlays()
         stopGestureDetection()
     }
     private fun addViews(width: Int, height: Int) {

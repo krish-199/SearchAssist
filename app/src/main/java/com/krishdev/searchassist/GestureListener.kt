@@ -1,19 +1,10 @@
 package com.krishdev.searchassist
 
-import android.annotation.TargetApi
-import android.app.Activity
-import android.graphics.Bitmap
-import android.os.Build
-import android.os.Handler
-import android.os.Looper
+import android.content.Context
+import android.content.Intent
+import android.util.Log
 import android.view.GestureDetector
 import android.view.MotionEvent
-import android.util.Log
-import android.view.PixelCopy
-import android.content.Intent
-import android.content.Context
-import androidx.annotation.RequiresApi
-import androidx.compose.ui.platform.LocalContext
 
 class GestureListener(private val context: Context) : GestureDetector.SimpleOnGestureListener() {
 
@@ -112,10 +103,12 @@ class GestureListener(private val context: Context) : GestureDetector.SimpleOnGe
         val intent = Intent("com.krishdev.ACTION_GATHER_ACCESSIBILITY_TAGS")
         Log.i(TAG, "Fling" + e1?.let { getTouchType(it) })
         if (velocityY > 0) {
-            context.sendBroadcast(intent)
+//            context.sendBroadcast(intent)
+//            ServiceSharedInstance.sendAccessibilityData(true)
             Log.i(TAG, "Fling downward")
         } else {
             Log.i(TAG, "fling upward")
+            ServiceSharedInstance.sendAccessibilityData(true)
 
         }
         return super.onFling(e1, e2, velocityX, velocityY)
