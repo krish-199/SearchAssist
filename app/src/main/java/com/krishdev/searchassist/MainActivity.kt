@@ -34,6 +34,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.ActivityResultLauncher
+import androidx.compose.material3.Slider
 
 
 class MainActivity : ComponentActivity() {
@@ -89,8 +90,12 @@ class MainActivity : ComponentActivity() {
     }
 
     // Function to start the Accessibility Service
-    private fun startAccessibilityService() {
-        val intent = Intent(this, GestureDetectionService::class.java)
+    private fun startAccessibilityService(width: Int, height: Int, heightOffset: Int) {
+        val intent = Intent(this, GestureDetectionService::class.java).apply {
+            putExtra("width", width)
+            putExtra("height", height)
+            putExtra("heightOffset", 100)
+        }
         startService(intent)
         Log.d("MainActivity", "Accessibility Service Started")
     }
@@ -107,7 +112,8 @@ class MainActivity : ComponentActivity() {
 fun GestureLoggerApp() {
     // State to handle if gesture detection is active
     var isGestureDetectionActive by remember { mutableStateOf(false) }
-    val context = LocalContext.current
+    var width by remember { mutableStateOf(20f) }
+    var height by remember { mutableStateOf(40f) }
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -116,10 +122,10 @@ fun GestureLoggerApp() {
         if (isGestureDetectionActive) {
             // Show the gesture detection area and the stop button
             // Edge gesture detector with translucent pink box
-            EdgeGestureDetector { gestureType ->
-                // Log the gesture action
-                Log.d("GestureAction", gestureType)
-            }
+            // EdgeGestureDetector { gestureType ->
+            //     // Log the gesture action
+            //     Log.d("GestureAction", gestureType)
+            // }
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
@@ -134,51 +140,39 @@ fun GestureLoggerApp() {
                 }
             }
         } else {
-            // Show the start button when gesture detection is inactive
-            Button(onClick = {
-                if (!isAccessibilityServiceEnabled()) {
-                    promptEnableAccessibilityService()
-                } else {
-                    startAccessibilityService()
-                    isGestureDetectionActive = true
+            // Show the start button and sliders when gesture detection is inactive
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text("Width: ${width.toInt()}")
+                Slider(
+                    value = width,
+                    onValueChange = { width = it },
+                    valueRange = 0f..100f,
+                    modifier = Modifier.padding(16.dp)
+                )
+
+                Text("Height: ${height.toInt()}")
+                Slider(
+                    value = height,
+                    onValueChange = { height = it },
+                    valueRange = 0f..1000f,
+                    modifier = Modifier.padding(16.dp)
+                )
+
+                Button(onClick = {
+                    if (!isAccessibilityServiceEnabled()) {
+                        promptEnableAccessibilityService()
+                    } else {
+                        startAccessibilityService(width.toInt(), height.toInt(), 100)
+                        isGestureDetectionActive = true
+                    }
+                }) {
+                    Text("Start Accessibility Service")
                 }
-            }) {
-                Text("Start Accessibility Service")
             }
         }
-    }
-}
-
-@Composable
-fun GestureDetector(onGestureDetected: (String) -> Unit) {
-    // A Box that listens for gestures
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onTap = {
-                        onGestureDetected("Tap Detected")
-                    }
-                )
-            }
-            .pointerInput(Unit) {
-                detectDragGestures(
-                    onDragStart = {
-                        onGestureDetected("Drag Started")
-                    },
-                    onDragEnd = {
-                        onGestureDetected("Drag Ended")
-                    },
-                    onDrag = { change, dragAmount ->
-                        // Here you can handle the drag itself (e.g., for dragging UI elements)
-                        onGestureDetected("Dragging... dx: ${dragAmount.x}, dy: ${dragAmount.y}")
-                    }
-                )
-            },
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text = "Perform a gesture")
     }
 }
 

@@ -16,6 +16,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.util.DisplayMetrics
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
@@ -50,12 +51,12 @@ class GestureStrokeView(context: Context, private val startX: Float, private val
     private val paint = Paint().apply {
         this.color = color
         style = Paint.Style.STROKE
-        strokeWidth = 5f
+        strokeWidth = 10f
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        canvas.drawLine(startX, startY, startX, startY + 100, paint) // Example line, adjust as needed
+        canvas.drawLine(startX, startY, startX, startY + 10, paint) // Example line, adjust as needed
     }
 }
 
@@ -116,8 +117,9 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
 
         when (event.eventType) {
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
-                val className = event.className?.toString()
-                Log.d("SAS", "Window state changed: $className")
+                val currentPackage = event.packageName.toString();
+                Log.d("SAS", "Current package name $currentPackage")
+                ServiceSharedInstance.sendForegroundWindow(currentPackage)
 
                 // Check if the window class name is related to the input method
                 // if (className?.contains("InputMethod") == true || className == "com.android.inputmethod.latin.LatinIME") {
@@ -125,11 +127,11 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
                 // }
                 isKeyboardOpen = true
             }
-
-            AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> {
-                Log.d("SAS", "Window content changed")
-                // You could further analyze this event to see if it's due to the keyboard opening.
-            }
+//
+//            AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> {
+//                Log.d("SAS", "Window content changed")
+//                // You could further analyze this event to see if it's due to the keyboard opening.
+//            }
 
             AccessibilityEvent.TYPE_VIEW_FOCUSED -> {
                 val focusedClassName = event.className?.toString()
@@ -153,20 +155,54 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
         super.onDestroy()
     }
 
+    private fun enableOneHandedMode() {
+        val windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+        val displayMetrics = DisplayMetrics()
+        windowManager.defaultDisplay.getMetrics(displayMetrics)
+
+        val screenWidth = displayMetrics.widthPixels
+        val screenHeight = displayMetrics.heightPixels
+
+        // Define the gesture path for the swipe
+        val path = Path().apply {
+            moveTo(screenWidth / 2f, screenHeight.toFloat() + 50)
+            lineTo(screenWidth / 2f, screenHeight.toFloat() + 100)
+        }
+
+        // Create a GestureDescription using the path
+        val gestureDescription = GestureDescription.Builder()
+            .addStroke(GestureDescription.StrokeDescription(path, 0, 10)) // Duration of 500ms for the swipe
+            .build()
+
+        // Dispatch the gesture
+        dispatchGesture(gestureDescription, null, null)
+        Log.d("SAS", "one handed mode enabled")
+    }
+
     // Method to gather accessibility data from the current screen
     private fun gatherAccessibilityData() {
         isKeyboardOpen = false
         var rootNode = rootInActiveWindow
         if (rootNode != null) {
             if (extractTextFromNode(rootNode)) return
-            else if (searchNodes.isNotEmpty()) {
-                // for (node in searchNodes) {
-                //     // if (!node.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
-                //     //     performClickAtNodeCoordinates(node)
-                //     // }
-                //     drawBoxOnNode(node, Color.YELLOW);
-                // }
-                performAction(searchNodes[0])
+            // else if (searchNodes.isNotEmpty()) {
+            //     // Sort the searchNodes based on the width of each node
+            //     searchNodes.sortBy { node ->
+            //         val bounds = Rect()
+            //         node.getBoundsInScreen(bounds)
+            //         bounds.height() // Calculate the width of the node
+            //     }
+            
+            //     // Perform the desired action on the sorted nodes
+            //     for (node in searchNodes) {
+            //         drawBoxOnNode(node, Color.MAGENTA)
+            //     }
+            
+            //     // Perform action on the first node in the sorted list
+            //     performAction(searchNodes[0])
+            // } 
+            else {
+                enableOneHandedMode()
             }
         } else {
             Log.d("SimpleAccessibilityService", "Root node is null using windowslist")
@@ -206,7 +242,7 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
          // dealy of 100 ms
          if(checkImeVisibility()) return true
          if (isKeyboardOpen) return true
-    Log.d("SAS", "Checking for keyboard open before delay")
+        Log.d("SAS", "Checking for keyboard open before delay")
 
         Log.d("SAS", "Checking for keyboard open after delay")
          val windowsList = windows // Get the list of active windows
@@ -233,7 +269,18 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
 
 
     private fun drawBoxOnNode(node: AccessibilityNodeInfo, color: Int = Color.RED) {
-        return
+        // return
+        // loggin node proerties
+        val nodeText = node.text?.toString()
+        val nodeDes = node.contentDescription?.toString()
+        val nodeId = node.viewIdResourceName?.toString()
+        val nodeClass = node.className?.toString()
+        val nodeClickacble = node.isClickable
+        val nodeEditable = node.isEditable
+        val nodeFoucasble = node.isFocusable
+        val nodeCheckable = node.isCheckable
+
+        Log.d("DrawNode", "Node Text: $nodeText Node Description: $nodeDes Node Id: $nodeId Node Class: $nodeClass Node Clickable: $nodeClickacble Node Editable: $nodeEditable Node Focusable: $nodeFoucasble Node Checkable: $nodeCheckable")
         val windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         val boundingBoxView = BoundingBoxView(this, color)
         val params = WindowManager.LayoutParams(
@@ -279,8 +326,11 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
         val widthPercentage = (nodeWidth.toFloat() / screenWidth) * 100
 
         Log.d("NODE", "Node width percentage: $widthPercentage% and height: ${bounds.height()}")
-        drawBoxOnNode(node, Color.CYAN)
-        return (widthPercentage > 40 && 10 < bounds.height() && bounds.height() < 400 )
+        if ((widthPercentage > 40 && 30 < bounds.height() && bounds.height() < 400 )) {
+            drawBoxOnNode(node, Color.YELLOW)
+            return true
+        }
+        return false
     }
 
 
@@ -288,23 +338,24 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
         val bounds = Rect()
         node.getBoundsInScreen(bounds)
         // Assuming search icon is usually small and located at the top right corner
-        if ( bounds.width() in 1..199 && bounds.height() in 1..199) {
+        if ( bounds.width() in 1..199 && bounds.height() in 1..199 && (bounds.width().toDouble()/bounds.height().toDouble()) in 0.5..2.8) {
+            drawBoxOnNode(node, Color.CYAN)
             return true
         }
         return false
     }
 
     private fun performAction(node: AccessibilityNodeInfo) {
-        if (node.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
+        if (node.performAction(AccessibilityNodeInfo.ACTION_CLICK) || node.performAction(AccessibilityNodeInfo.ACTION_FOCUS)) {
             Log.d("SAS", "Click action performed")
-            drawBoxOnNode(node, Color.GREEN)
+//            drawBoxOnNode(node, Color.GREEN)
         }
         else {
             Log.d("SAS", "Performing gesture")
             drawBoxOnNode(node)
             performClickAtNodeCoordinates(node)
         }
-        if (isKeyboardOpen() && !isKeyboardOpen && !node.isClickable) {
+        if (!isKeyboardOpen() && !isKeyboardOpen && !node.isClickable) {
             Log.d("SAS", "Performing gesture")
             drawBoxOnNode(node)
             performClickAtNodeCoordinates(node)
@@ -338,11 +389,22 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
     private fun extractTextFromNode(node: AccessibilityNodeInfo): Boolean {
 //        if (node.isEditable) drawBoxOnNode(node);
         if (isKeyboardOpen) return true
-        val nodeDes = node.contentDescription?.toString()?.contains("search", ignoreCase = true)
-        val nodeText = node.text?.toString()?.contains("search", ignoreCase = true)
-        val nodeId = node.viewIdResourceName?.toString()?.substringAfterLast(":")?.contains("search", ignoreCase = true)
+        val nCo = node.contentDescription?.toString()
+        val nTxt = node.text?.toString()
+        val nId = node.viewIdResourceName?.toString()
+        val nodeDes = nCo?.contains("search", ignoreCase = true)
+        val nodeText = nTxt?.let { it.contains("search", ignoreCase = true) && it.length < 15 }
+        val nodeId = nId?.substringAfterLast(":")?.contains("search", ignoreCase = true)
+        val isHeader = nId?.substringAfterLast(":")?.let { id ->
+            id.contains("header", ignoreCase = true) ||
+            id.contains("title", ignoreCase = true)
+        }
+        if (isHeader == true) {
+            Log.d("SAS", "Header found")
+            return false
+        }
         //Perform click action on the node
-        if ((nodeDes == true || nodeText == true) || nodeId == true) {
+        if (nodeDes == true || nodeText == true || nodeId == true) {
             node.text?.toString()?.let { Log.d("NODE", "text:: "+it) }
             node.contentDescription?.toString()?.let { Log.d("NODE", "Cont:: "+it) }
             node.viewIdResourceName?.toString()?.let { Log.d("NODE", "Id:: "+it) }
@@ -374,7 +436,7 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
     }
 
     private fun drawStroke(centerX: Int, centerY: Int) {
-        return
+        // return
         val gestureStrokeView = GestureStrokeView(this, centerX.toFloat(), centerY.toFloat(), Color.RED)
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
@@ -402,9 +464,12 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
         val navigationBarHeight = getNavigationBarHeight()
         rect.bottom -= navigationBarHeight
 
+        rect.bottom -= 10
+
         // Calculate the center of the node
         val centerX = (rect.left + rect.right) / 2
         val centerY = (rect.top + rect.bottom) / 2
+
 
         drawStroke(centerX, centerY)
 
@@ -413,7 +478,7 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
             moveTo(centerX.toFloat(), centerY.toFloat())
         }
         val gestureDescription = GestureDescription.Builder()
-            .addStroke(GestureDescription.StrokeDescription(path, 0, 1000))
+            .addStroke(GestureDescription.StrokeDescription(path, 0, 100))
             .build()
             
             // Dispatch the gesture with a callback

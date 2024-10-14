@@ -2,6 +2,7 @@ package com.krishdev.searchassist
 
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.util.Log
 import android.view.GestureDetector
 import android.view.MotionEvent
@@ -106,6 +107,20 @@ class GestureListener(private val context: Context) : GestureDetector.SimpleOnGe
 //            context.sendBroadcast(intent)
 //            ServiceSharedInstance.sendAccessibilityData(true)
             Log.i(TAG, "Fling downward")
+                    // Create an intent to launch the desired application
+            val packageName = "ninja.sesame.app.edge" // Replace with the package name of the app you want to launch
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                val launchIntentSender = context.packageManager.getLaunchIntentSenderForPackage(packageName)
+                context.startIntentSender(launchIntentSender, null, 0, 0, 0)
+
+            } else {
+                val launchIntent = context.packageManager.getLaunchIntentForPackage(packageName)
+                if (launchIntent != null) {
+                    // Launch the application
+                    context.startActivity(launchIntent)
+                    Log.i(TAG, "Launching application: $packageName")
+                }
+            }
         } else {
             Log.i(TAG, "fling upward")
             ServiceSharedInstance.sendAccessibilityData(true)
