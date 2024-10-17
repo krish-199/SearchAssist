@@ -3,6 +3,17 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="com.krishdev.searchassist">
 
+    <queries>
+        <!-- Specific app by package name -->
+        <package android:name="ninja.sesame.app.edge" />
+
+        <!-- Allow queries for apps with launcher activity -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 <!--    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />-->
 <!--    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />-->

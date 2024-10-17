@@ -116,9 +116,11 @@ class GestureListener(private val context: Context) : GestureDetector.SimpleOnGe
             } else {
                 val launchIntent = context.packageManager.getLaunchIntentForPackage(packageName)
                 if (launchIntent != null) {
-                    // Launch the application
+                    // Ensure the intent has the FLAG_ACTIVITY_NEW_TASK flag
+                    launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     context.startActivity(launchIntent)
-                    Log.i(TAG, "Launching application: $packageName")
+                } else {
+                    Log.e(TAG, "Launch intent not found for package: $packageName")
                 }
             }
         } else {
