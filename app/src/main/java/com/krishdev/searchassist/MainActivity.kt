@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.ActivityResultLauncher
 import androidx.compose.material3.Slider
+import androidx.compose.runtime.mutableFloatStateOf
 
 
 class MainActivity : ComponentActivity() {
@@ -90,11 +91,11 @@ class MainActivity : ComponentActivity() {
     }
 
     // Function to start the Accessibility Service
-    private fun startAccessibilityService(width: Int, height: Int, heightOffset: Int) {
+    private fun startAccessibilityService(width: Int, height: Int, heightOffset: Int = 0) {
         val intent = Intent(this, GestureDetectionService::class.java).apply {
             putExtra("width", width)
             putExtra("height", height)
-            putExtra("heightOffset", 100)
+            putExtra("heightOffset", heightOffset)
         }
         startService(intent)
         Log.d("MainActivity", "Accessibility Service Started")
@@ -112,8 +113,9 @@ class MainActivity : ComponentActivity() {
 fun GestureLoggerApp() {
     // State to handle if gesture detection is active
     var isGestureDetectionActive by remember { mutableStateOf(false) }
-    var width by remember { mutableStateOf(20f) }
-    var height by remember { mutableStateOf(40f) }
+    var width by remember { mutableFloatStateOf(20f) }
+    var height by remember { mutableFloatStateOf(40f) }
+    var heightOffset by remember { mutableFloatStateOf(0f) }
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -157,7 +159,15 @@ fun GestureLoggerApp() {
                 Slider(
                     value = height,
                     onValueChange = { height = it },
-                    valueRange = 0f..1000f,
+                    valueRange = 0f..100f,
+                    modifier = Modifier.padding(16.dp)
+                )
+
+                Text("Height Offset: ${heightOffset.toInt()}")
+                Slider(
+                    value = heightOffset.toFloat(),
+                    onValueChange = { heightOffset = it },
+                    valueRange = 0f..50f,
                     modifier = Modifier.padding(16.dp)
                 )
 
@@ -165,7 +175,7 @@ fun GestureLoggerApp() {
                     if (!isAccessibilityServiceEnabled()) {
                         promptEnableAccessibilityService()
                     } else {
-                        startAccessibilityService(width.toInt(), height.toInt(), 100)
+                        startAccessibilityService(width.toInt(), height.toInt(), heightOffset.toInt())
                         isGestureDetectionActive = true
                     }
                 }) {

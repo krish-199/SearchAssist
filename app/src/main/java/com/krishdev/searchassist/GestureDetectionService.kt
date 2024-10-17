@@ -10,10 +10,13 @@ import android.content.Intent
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.provider.Settings
 import android.text.TextUtils
 import android.util.Log
+import android.util.DisplayMetrics
 import android.view.GestureDetector
 import android.view.Gravity
 import android.view.View
@@ -29,63 +32,73 @@ class GestureDetectionService : Service(), ServiceSharedInstance.OnWindowChangeL
     private lateinit var windowManager: WindowManager // Reference to the WindowManager
     private var width = 90
     private var height = WindowManager.LayoutParams.MATCH_PARENT
-    private var showOverlay = true
+    private var heightOffset = 0
 
     companion object {
         const val CHANNEL_ID = "GestureDetectionChannel"
     }
 
-    private val configReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            val width = intent?.getIntExtra("width", 90) ?: 40
-            val height = intent?.getIntExtra("height", WindowManager.LayoutParams.MATCH_PARENT) ?: WindowManager.LayoutParams.MATCH_PARENT
-            val colorLeft = intent?.getStringExtra("colorLeft") ?: "#80FF0000"
-            val colorRight = intent?.getStringExtra("colorRight") ?: "#8000FF00"
-
-            // updateViews(width, height, colorLeft, colorRight)
-        }
-    }
-
     override fun onWindowChange(window: String) {
-        if (!(::leftEdgeView.isInitialized || ::rightEdgeView.isInitialized)) return;
-        val isSystemServiceOpen = window.toString()
-            .let { it.contains("launcher", ignoreCase = true) || it.contains("system", ignoreCase = true) || it.contains("input", ignoreCase = true) }
-        if (isSystemServiceOpen && showOverlay) {
-            removeOverlays()
-        } else if (!showOverlay) {
-            addOverlays()
-        }
+    try {
+       if (!(::leftEdgeView.isInitialized || ::rightEdgeView.isInitialized)) return;
+       val isSystemServiceOpen = window.toString()
+           .let { it.contains("launcher", ignoreCase = true) || it.contains("input", ignoreCase = true) }
+       if (isSystemServiceOpen) {
+           updateOverlays(4)
+       } else {
+           updateOverlays()
+       }
         Log.d("GestureDetectionService", "Foreground window changed: $window")
+    } catch (e: Exception) {
+        // in case of any exception destroy service
+        Log.d("GestureDetectionService", "err ==>: $e")
+        onDestroy()
+    }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+
+
         intent?.let {
-            this.width = it.getIntExtra("width", 90)
-            this.height = it.getIntExtra("height", WindowManager.LayoutParams.MATCH_PARENT)
+            width = it.getIntExtra("width", 90)
+            height = convertPercentToPixels(this, it.getIntExtra("height", 100))
+            heightOffset = convertPercentToPixels(this, it.getIntExtra("heightOffset", 0))
             // Use the data as needed
         }
-        val gestureListener = GestureListener(this)
-        gestureDetector = GestureDetector(this, gestureListener)
-//       startForeground(NOTIFICATION_ID, createNotification())
-        windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
 
+        Handler(Looper.getMainLooper()).post {
+            if (::leftEdgeView.isInitialized && ::rightEdgeView.isInitialized) {
+                updateOverlays()
+            } else {
+                Log.e("UpdateView", "View not added to WindowManager yet")
+            }
+        }
         // Start gesture detection logic (you will need to add the appropriate detection logic)
-        ServiceSharedInstance.registerWindowListener(this)
-        startGestureDetection()
-        return START_STICKY
+        Log.v("GDS", "in onStartCommand")
+        // startForeground(1, createNotification())
+        Log.d("GDS", "foreground started")
+        // startGestureDetection()
+        return START_NOT_STICKY
     }
 
-//     override fun onCreate() {
-//         super.onCreate()
-//         createNotificationChannel()
-//         val gestureListener = GestureListener(this)
-//         gestureDetector = GestureDetector(this, gestureListener)
-// //       startForeground(NOTIFICATION_ID, createNotification())
-//         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+    override fun onCreate() {
+        super.onCreate()
+        // createNotificationChannel()
+        val gestureListener = GestureListener(this)
+        gestureDetector = GestureDetector(this, gestureListener)
+    //   startForeground(NOTIFICATION_ID, createNotification())
+        windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+        ServiceSharedInstance.registerWindowListener(this)
 
-//         // Start gesture detection logic (you will need to add the appropriate detection logic)
-//         startGestureDetection()
-//     }
+        // Start gesture detection logic (you will need to add the appropriate detection logic)
+        startGestureDetection()
+       //  if (!showOverlay) addOverlays()
+    }
+
+    private fun convertPercentToPixels(context: Context, percent: Int): Int {
+        val displayMetrics = context.resources.displayMetrics
+        return (displayMetrics.heightPixels * percent / 100.0).toInt()
+    }
 
     private fun isAccessibilityServiceEnabled(): Boolean {
         val enabledServices = Settings.Secure.getString(
@@ -133,17 +146,17 @@ class GestureDetectionService : Service(), ServiceSharedInstance.OnWindowChangeL
             gestureDetector.onTouchEvent(event)
         }
 
-        addOverlays()
-
         Log.d("GestureService", "Gesture detection started in the background")
+
+        addOverlays()
     }
 
     private fun addOverlays() {
         // Add the view to the window manager to receive touch events globally
         // Create layout parameters for the left edge
         val touchLayoutLeft = WindowManager.LayoutParams(
-            this.width,
-            this.height,
+            width,
+            height,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                     WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
@@ -151,12 +164,13 @@ class GestureDetectionService : Service(), ServiceSharedInstance.OnWindowChangeL
             PixelFormat.TRANSLUCENT // Make sure the overlay is translucent if needed
         ).apply {
             gravity = Gravity.START or Gravity.BOTTOM // Move to the left edge of the screen
+            y = heightOffset
         }
 
         // Create layout parameters for the right edge
         val touchLayoutRight = WindowManager.LayoutParams(
-            this.width,
-            this.height,
+            width,
+            height,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                     WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
@@ -164,20 +178,21 @@ class GestureDetectionService : Service(), ServiceSharedInstance.OnWindowChangeL
             PixelFormat.TRANSLUCENT // Make sure the overlay is translucent if needed
         ).apply {
             gravity = Gravity.END or Gravity.BOTTOM // Move to the right edge of the screen
+            y = heightOffset
         }
 
         windowManager.addView(leftEdgeView, touchLayoutLeft)
         windowManager.addView(rightEdgeView, touchLayoutRight)
 
-        showOverlay = true
+        Log.d("GestureDetectionService", "Overlay views added.")
     }
 
-    private fun updateOverlays() {
+    private fun updateOverlays(width: Int = this.width, height: Int = this.height, heightOffset: Int = this.heightOffset) {
         // Add the view to the window manager to receive touch events globally
         // Create layout parameters for the left edge
         val touchLayoutLeft = WindowManager.LayoutParams(
-            this.width,
-            this.height,
+            width,
+            height,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                     WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
@@ -185,12 +200,13 @@ class GestureDetectionService : Service(), ServiceSharedInstance.OnWindowChangeL
             PixelFormat.TRANSLUCENT // Make sure the overlay is translucent if needed
         ).apply {
             gravity = Gravity.START or Gravity.BOTTOM // Move to the left edge of the screen
+            y = heightOffset
         }
 
         // Create layout parameters for the right edge
         val touchLayoutRight = WindowManager.LayoutParams(
-            this.width,
-            this.height,
+            width,
+            height,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                     WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
@@ -198,12 +214,12 @@ class GestureDetectionService : Service(), ServiceSharedInstance.OnWindowChangeL
             PixelFormat.TRANSLUCENT // Make sure the overlay is translucent if needed
         ).apply {
             gravity = Gravity.END or Gravity.BOTTOM // Move to the right edge of the screen
+            y = heightOffset
         }
+        if (::leftEdgeView.isInitialized && leftEdgeView.isAttachedToWindow) windowManager.updateViewLayout(leftEdgeView, touchLayoutLeft)
+        if (::rightEdgeView.isInitialized && rightEdgeView.isAttachedToWindow) windowManager.updateViewLayout(rightEdgeView, touchLayoutRight)
 
-        windowManager.updateViewLayout(leftEdgeView, touchLayoutLeft)
-        windowManager.updateViewLayout(rightEdgeView, touchLayoutRight)
-
-        showOverlay = true
+        Log.d("GDS", "Updating overlay")
     }
 
     private fun createNotification(): Notification {
@@ -237,52 +253,18 @@ class GestureDetectionService : Service(), ServiceSharedInstance.OnWindowChangeL
         removeOverlays()
         stopGestureDetection()
     }
-    private fun addViews(width: Int, height: Int) {
-        // Create layout parameters for the left edge
-        val touchLayoutLeft = WindowManager.LayoutParams(
-            width,
-            height,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-            PixelFormat.TRANSLUCENT // Make sure the overlay is translucent if needed
-        ).apply {
-            gravity = Gravity.START or Gravity.CENTER_VERTICAL // Move to the left edge of the screen
-        }
-
-        // Create layout parameters for the right edge
-        val touchLayoutRight = WindowManager.LayoutParams(
-            width,
-            height,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-            PixelFormat.TRANSLUCENT // Make sure the overlay is translucent if needed
-        ).apply {
-            gravity = Gravity.END or Gravity.CENTER_VERTICAL // Move to the right edge of the screen
-        }
-
-        // Add views to the windowManager
-        windowManager.addView(leftEdgeView, touchLayoutLeft)
-        windowManager.addView(rightEdgeView, touchLayoutRight)
-    }
 
     private fun removeOverlays() {
         try {
             Log.d("GestureDetectionService", "Attempting to remove overlay views.")
-            if (::leftEdgeView.isInitialized) {
-                windowManager.updateViewLayout(leftEdgeView, null)
+            if (::leftEdgeView.isInitialized && leftEdgeView.isAttachedToWindow) {
                 windowManager.removeView(leftEdgeView)
                 Log.d("GestureDetectionService", "Left edge view removed.")
             }
-            if (::rightEdgeView.isInitialized) {
-                windowManager.updateViewLayout(rightEdgeView, null)
+            if (::rightEdgeView.isInitialized && rightEdgeView.isAttachedToWindow) {
                 windowManager.removeView(rightEdgeView)
                 Log.d("GestureDetectionService", "Right edge view removed.")
             }
-            showOverlay = false
         } catch (e: Exception) {
             Log.e("GestureDetectionService", "Error removing overlay views: ${e.message}")
         }
