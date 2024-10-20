@@ -80,7 +80,8 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
     }
 
     private var isKeyboardOpen = false
-    private var searchNodes = mutableListOf<AccessibilityNodeInfo>()
+    private var searchNodes = mutableListOf<AccessibilityNodeInfo>();
+    private var debug = false
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onServiceConnected() {
@@ -269,8 +270,7 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
 
 
     private fun drawBoxOnNode(node: AccessibilityNodeInfo, color: Int = Color.RED) {
-        // return
-        // loggin node proerties
+        if (!debug) return
         val nodeText = node.text?.toString()
         val nodeDes = node.contentDescription?.toString()
         val nodeId = node.viewIdResourceName?.toString()
@@ -437,6 +437,7 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
 
     private fun drawStroke(centerX: Int, centerY: Int) {
         // return
+        if (!debug) return
         val gestureStrokeView = GestureStrokeView(this, centerX.toFloat(), centerY.toFloat(), Color.RED)
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,

@@ -1,6 +1,7 @@
 package com.krishdev.searchassist
 
 import android.content.Intent
+import android.content.Context
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
@@ -18,6 +19,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -36,6 +39,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.ActivityResultLauncher
 import androidx.compose.material3.Slider
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.LaunchedEffect
 
 
 class MainActivity : ComponentActivity() {
@@ -44,6 +48,11 @@ class MainActivity : ComponentActivity() {
     companion object {
         private lateinit var overlayPermissionLauncher: ActivityResultLauncher<Intent>
     }
+
+    private val PREFS_NAME = "GestureLoggerPrefs"
+    private val WIDTH_KEY = "width"
+    private val HEIGHT_KEY = "height"
+    private val HEIGHT_OFFSET_KEY = "heightOffset"
 
 
     private fun promptEnableAccessibilityService() {
@@ -112,10 +121,22 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun GestureLoggerApp() {
     // State to handle if gesture detection is active
+    val sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    val savedWidth = sharedPreferences.getFloat(WIDTH_KEY, 20f)
+    val savedHeight = sharedPreferences.getFloat(HEIGHT_KEY, 40f)
+    val savedHeightOffset = sharedPreferences.getFloat(HEIGHT_OFFSET_KEY, 0f)
+    val editor = sharedPreferences.edit()
     var isGestureDetectionActive by remember { mutableStateOf(false) }
-    var width by remember { mutableFloatStateOf(20f) }
-    var height by remember { mutableFloatStateOf(40f) }
-    var heightOffset by remember { mutableFloatStateOf(0f) }
+    var width by remember { mutableFloatStateOf(savedWidth) }
+    var height by remember { mutableFloatStateOf(savedHeight) }
+    var heightOffset by remember { mutableFloatStateOf(savedHeightOffset) }
+
+    LaunchedEffect(width, height, heightOffset) {
+        editor.putFloat(WIDTH_KEY, width)
+        editor.putFloat(HEIGHT_KEY, height)
+        editor.putFloat(HEIGHT_OFFSET_KEY, heightOffset)
+        editor.apply()
+    }
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -143,6 +164,7 @@ fun GestureLoggerApp() {
             }
         } else {
             // Show the start button and sliders when gesture detection is inactive
+            EdgeGestureDetector(width, height, heightOffset)
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
@@ -187,35 +209,30 @@ fun GestureLoggerApp() {
 }
 
 @Composable
-fun EdgeGestureDetector(onGestureDetected: (String) -> Unit) {
+fun EdgeGestureDetector(width: Float, height: Float, heightOffset: Float) {
     // Detect gestures in the left 20px-wide region of the screen
     Box(
         modifier = Modifier
             .fillMaxSize()
             .wrapContentWidth(Alignment.Start)
-            .width(20.dp) // Set width to 20dp for gesture detection area
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onTap = {
-                        onGestureDetected("Tap Detected from Edge")
-                    }
-                )
-            }
-            .pointerInput(Unit) {
-                detectDragGestures(
-                    onDragStart = {
-                        onGestureDetected("Drag Started from Edge")
-                    },
-                    onDragEnd = {
-                        onGestureDetected("Drag Ended from Edge")
-                    },
-                    onDrag = { change, dragAmount ->
-                        // Handle drag gesture from the edge
-                        onGestureDetected("Dragging from Edge... dx: ${dragAmount.x}, dy: ${dragAmount.y}")
-                    }
-                )
-            },
+            .wrapContentHeight(Alignment.Bottom)
+            .width(width.dp) // Set width to 20dp for gesture detection area
+            .height((height * 0.01f * LocalContext.current.resources.displayMetrics.heightPixels).dp)
+            .padding(bottom = (heightOffset * 0.01f * LocalContext.current.resources.displayMetrics.heightPixels).dp) // Add height offset
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(text = "Perform gesture from the edge", modifier = Modifier.padding(4.dp))
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .wrapContentWidth(Alignment.End)
+            .wrapContentHeight(Alignment.Bottom)
+            .width(width.dp) // Set width to 20dp for gesture detection area
+            .height((height * 0.01f * LocalContext.current.resources.displayMetrics.heightPixels).dp)
+            .padding(bottom = (heightOffset * 0.01f * LocalContext.current.resources.displayMetrics.heightPixels).dp) 
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
         contentAlignment = Alignment.Center
     ) {
         Text(text = "Perform gesture from the edge", modifier = Modifier.padding(4.dp))

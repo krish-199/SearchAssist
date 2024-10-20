@@ -22,6 +22,8 @@ import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityNodeInfo
+import android.view.MotionEvent
+import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 
 class GestureDetectionService : Service(), ServiceSharedInstance.OnWindowChangeListener {
@@ -36,6 +38,7 @@ class GestureDetectionService : Service(), ServiceSharedInstance.OnWindowChangeL
 
     companion object {
         const val CHANNEL_ID = "GestureDetectionChannel"
+        const val debug = true
     }
 
     override fun onWindowChange(window: String) {
@@ -127,23 +130,29 @@ class GestureDetectionService : Service(), ServiceSharedInstance.OnWindowChangeL
 
     private fun startGestureDetection() {
         // Initialize views for left and right edges
-        leftEdgeView = View(this).apply {
-            setBackgroundColor(Color.parseColor("#80FF0000")) // Set the background color (e.g., semi-transparent red)
-        }
-        rightEdgeView = View(this).apply {
-            setBackgroundColor(Color.parseColor("#8000FF00")) // Set the background color (e.g., semi-transparent green)
+        leftEdgeView = View(this)
+        rightEdgeView = View(this)
+        if (debug) {
+            leftEdgeView = View(this).apply {
+                setBackgroundColor(Color.parseColor("#80FF0000")) // Set the background color (e.g., semi-transparent red)
+            }
+            rightEdgeView = View(this).apply {
+                setBackgroundColor(Color.parseColor("#8000FF00")) // Set the background color (e.g., semi-transparent green)
+            }
         }
 
         leftEdgeView.setOnTouchListener { _, event ->
             // Pass the event to the gesture detector
             Log.d("GestureService", "Event received: ${event.action}")
             gestureDetector.onTouchEvent(event)
+            false
         }
 
         rightEdgeView.setOnTouchListener { _, event ->
             // Pass the event to the gesture detector
             Log.d("GestureService", "Event received: ${event.action}")
             gestureDetector.onTouchEvent(event)
+            false
         }
 
         Log.d("GestureService", "Gesture detection started in the background")

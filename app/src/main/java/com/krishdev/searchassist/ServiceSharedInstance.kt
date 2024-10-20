@@ -3,8 +3,8 @@ package com.krishdev.searchassist
 import android.util.Log
 
 object ServiceSharedInstance {
-    var gestureDetected: Boolean = false // For example, a flag to communicate gestures
-    var accessibilityTags: String? = null // This will store data from Accessibility Service
+    private var gestureDetected: Boolean = false // For example, a flag to communicate gestures
+    private var accessibilityTags: String? = null // This will store data from Accessibility Service
     // List of registered listeners
     private val listeners = mutableListOf<OnGestureDetectedListener>()
     private val windowListeners = mutableListOf<OnWindowChangeListener>()
