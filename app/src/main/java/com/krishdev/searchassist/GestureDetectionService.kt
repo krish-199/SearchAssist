@@ -38,7 +38,7 @@ class GestureDetectionService : Service(), ServiceSharedInstance.OnWindowChangeL
 
     companion object {
         const val CHANNEL_ID = "GestureDetectionChannel"
-        const val debug = true
+        const val debug = false
     }
 
     override fun onWindowChange(window: String) {
@@ -64,8 +64,8 @@ class GestureDetectionService : Service(), ServiceSharedInstance.OnWindowChangeL
 
         intent?.let {
             width = it.getIntExtra("width", 90)
-            height = convertPercentToPixels(this, it.getIntExtra("height", 100))
-            heightOffset = convertPercentToPixels(this, it.getIntExtra("heightOffset", 0))
+            height = it.getIntExtra("height", 100)
+            heightOffset = it.getIntExtra("heightOffset", 0)
             // Use the data as needed
         }
 

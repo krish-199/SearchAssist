@@ -83,7 +83,6 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
     private var searchNodes = mutableListOf<AccessibilityNodeInfo>();
     private var debug = false
 
-    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onServiceConnected() {
         // Register the receiver to listen for gesture actions
         val info = AccessibilityServiceInfo()
@@ -93,11 +92,10 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
         info.flags = AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS or
                 AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
 
-        info.notificationTimeout = 100L // Set the event notification delay to reduce excessive callbacks
+        info.notificationTimeout = 10L // Set the event notification delay to reduce excessive callbacks
 
         serviceInfo = info
-//        val filter = IntentFilter("com.krishdev.ACTION_GATHER_ACCESSIBILITY_TAGS")
-//        registerReceiver(gestureActionReceiver, filter, Context.RECEIVER_EXPORTED)
+
         ServiceSharedInstance.registerListener(this)
         Log.d("SimpleAccessibilityService", "Service connected")
         super.onServiceConnected()
@@ -338,7 +336,7 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
         val bounds = Rect()
         node.getBoundsInScreen(bounds)
         // Assuming search icon is usually small and located at the top right corner
-        if ( bounds.width() in 1..199 && bounds.height() in 1..199 && (bounds.width().toDouble()/bounds.height().toDouble()) in 0.5..2.8) {
+        if ( bounds.width() in 1..350 && bounds.height() in 1..350 && (bounds.width().toDouble()/bounds.height().toDouble()) in 0.5..2.8) {
             drawBoxOnNode(node, Color.CYAN)
             return true
         }
@@ -346,9 +344,9 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
     }
 
     private fun performAction(node: AccessibilityNodeInfo) {
-        if (node.performAction(AccessibilityNodeInfo.ACTION_CLICK) || node.performAction(AccessibilityNodeInfo.ACTION_FOCUS)) {
+        if (node.performAction(AccessibilityNodeInfo.ACTION_CLICK) || node.performAction(AccessibilityNodeInfo.ACTION_FOCUS) || node.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS)) {
             Log.d("SAS", "Click action performed")
-//            drawBoxOnNode(node, Color.GREEN)
+            drawBoxOnNode(node, Color.GREEN)
         }
         else {
             Log.d("SAS", "Performing gesture")
@@ -392,9 +390,11 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
         val nCo = node.contentDescription?.toString()
         val nTxt = node.text?.toString()
         val nId = node.viewIdResourceName?.toString()
+        val nHint = node.hintText?.toString()
         val nodeDes = nCo?.contains("search", ignoreCase = true)
         val nodeText = nTxt?.let { it.contains("search", ignoreCase = true) && it.length < 15 }
         val nodeId = nId?.substringAfterLast(":")?.contains("search", ignoreCase = true)
+        val nodeHint = nHint?.contains("search", ignoreCase = true)
         val isHeader = nId?.substringAfterLast(":")?.let { id ->
             id.contains("header", ignoreCase = true) ||
             id.contains("title", ignoreCase = true)
@@ -404,17 +404,11 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
             return false
         }
         //Perform click action on the node
-        if (nodeDes == true || nodeText == true || nodeId == true) {
+        if (nodeDes == true || nodeText == true || nodeId == true || nodeHint == true) {
             node.text?.toString()?.let { Log.d("NODE", "text:: "+it) }
             node.contentDescription?.toString()?.let { Log.d("NODE", "Cont:: "+it) }
             node.viewIdResourceName?.toString()?.let { Log.d("NODE", "Id:: "+it) }
-            if (getClickAbleNode(node)) return true
-            return false
-            // drawBoxOnNode(node);
-                // Get node bounds
-                    // if (getClickAbleNode(node)) return true;
-        } else {
-            Log.d("SAS", "Node is not clickable")
+            return getClickAbleNode(node)
         }
         // Recursively traverse child nodes
         for (i in 0 until node.childCount) {

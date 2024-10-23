@@ -40,6 +40,7 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.compose.material3.Slider
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalDensity
 
 
 class MainActivity : ComponentActivity() {
@@ -131,12 +132,16 @@ fun GestureLoggerApp() {
     var height by remember { mutableFloatStateOf(savedHeight) }
     var heightOffset by remember { mutableFloatStateOf(savedHeightOffset) }
 
+    val heightPixelMultiplier = 0.01f * LocalContext.current.resources.displayMetrics.heightPixels
+
     LaunchedEffect(width, height, heightOffset) {
         editor.putFloat(WIDTH_KEY, width)
         editor.putFloat(HEIGHT_KEY, height)
         editor.putFloat(HEIGHT_OFFSET_KEY, heightOffset)
         editor.apply()
     }
+
+    EdgeGestureDetector(width.toInt(), height.toInt() * heightPixelMultiplier.toInt(), heightOffset.toInt() * heightPixelMultiplier.toInt())
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -164,7 +169,6 @@ fun GestureLoggerApp() {
             }
         } else {
             // Show the start button and sliders when gesture detection is inactive
-            EdgeGestureDetector(width, height, heightOffset)
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
@@ -187,7 +191,7 @@ fun GestureLoggerApp() {
 
                 Text("Height Offset: ${heightOffset.toInt()}")
                 Slider(
-                    value = heightOffset.toFloat(),
+                    value = heightOffset,
                     onValueChange = { heightOffset = it },
                     valueRange = 0f..50f,
                     modifier = Modifier.padding(16.dp)
@@ -197,7 +201,7 @@ fun GestureLoggerApp() {
                     if (!isAccessibilityServiceEnabled()) {
                         promptEnableAccessibilityService()
                     } else {
-                        startAccessibilityService(width.toInt(), height.toInt(), heightOffset.toInt())
+                        startAccessibilityService(width.toInt(), height.toInt() * heightPixelMultiplier.toInt(), heightOffset.toInt() * heightPixelMultiplier.toInt())
                         isGestureDetectionActive = true
                     }
                 }) {
@@ -209,16 +213,23 @@ fun GestureLoggerApp() {
 }
 
 @Composable
-fun EdgeGestureDetector(width: Float, height: Float, heightOffset: Float) {
+fun EdgeGestureDetector(width: Int, height: Int, heightOffset: Int) {
     // Detect gestures in the left 20px-wide region of the screen
+    val density = LocalDensity.current
+
+    // Convert pixel values to dp using the density
+    val widthDp = with(density) { width.toDp() }
+    val heightDp = with(density) { height.toDp() }
+    val heightOffsetDp = with(density) { heightOffset.toDp() }
+    val totalHeight = heightDp + heightOffsetDp
     Box(
         modifier = Modifier
             .fillMaxSize()
             .wrapContentWidth(Alignment.Start)
             .wrapContentHeight(Alignment.Bottom)
-            .width(width.dp) // Set width to 20dp for gesture detection area
-            .height((height * 0.01f * LocalContext.current.resources.displayMetrics.heightPixels).dp)
-            .padding(bottom = (heightOffset * 0.01f * LocalContext.current.resources.displayMetrics.heightPixels).dp) // Add height offset
+            .width(widthDp) // Set width to 20dp for gesture detection area
+            .height(totalHeight)
+            .padding(bottom = heightOffsetDp) // Add height offset
             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
         contentAlignment = Alignment.Center
     ) {
@@ -229,9 +240,9 @@ fun EdgeGestureDetector(width: Float, height: Float, heightOffset: Float) {
             .fillMaxSize()
             .wrapContentWidth(Alignment.End)
             .wrapContentHeight(Alignment.Bottom)
-            .width(width.dp) // Set width to 20dp for gesture detection area
-            .height((height * 0.01f * LocalContext.current.resources.displayMetrics.heightPixels).dp)
-            .padding(bottom = (heightOffset * 0.01f * LocalContext.current.resources.displayMetrics.heightPixels).dp) 
+            .width(widthDp) // Set width to 20dp for gesture detection area
+            .height(totalHeight)
+            .padding(bottom = heightOffsetDp)
             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
         contentAlignment = Alignment.Center
     ) {
