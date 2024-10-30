@@ -82,6 +82,7 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
     private var isKeyboardOpen = false
     private var searchNodes = mutableListOf<AccessibilityNodeInfo>();
     private var debug = false
+    private lateinit var overlayView: GestureDetectionOverlay
 
     override fun onServiceConnected() {
         // Register the receiver to listen for gesture actions
@@ -98,6 +99,12 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
 
         ServiceSharedInstance.registerListener(this)
         Log.d("SimpleAccessibilityService", "Service connected")
+
+        val windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+        // code is working as excepted do a cleanup of code to properly manage
+        overlayView = GestureDetectionOverlay(this, windowManager)
+        overlayView.onCreate()
+
         super.onServiceConnected()
     }
 
@@ -118,12 +125,22 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
                 val currentPackage = event.packageName.toString();
                 Log.d("SAS", "Current package name $currentPackage")
-                ServiceSharedInstance.sendForegroundWindow(currentPackage)
+//                ServiceSharedInstance.sendForegroundWindow(currentPackage)
+                val isSystemServiceOpen = currentPackage
+                    .let { it.contains("launcher", ignoreCase = true) || it.contains("input", ignoreCase = true) }
+
+                val isInputOpen = (event.className?.contains("InputMethod", ignoreCase = true) == true || event.className == "com.android.inputmethod.latin") && currentPackage.contains("input", ignoreCase = true)
+
+                if (isSystemServiceOpen || isInputOpen) {
+                    overlayView.enableOverlayOnWindowChange(false)
+                } else {
+                    overlayView.enableOverlayOnWindowChange(true)
+                }
 
                 // Check if the window class name is related to the input method
-                // if (className?.contains("InputMethod") == true || className == "com.android.inputmethod.latin.LatinIME") {
-                //     Log.d("SAS", "Keyboard is likely open (window state changed).")
-                // }
+                 if (event.className?.contains("InputMethod", ignoreCase = true) == true || event.className == "com.android.inputmethod.latin") {
+                     Log.d("SAS", "Keyboard is likely open (window state changed).")
+                 }
                 isKeyboardOpen = true
             }
 //

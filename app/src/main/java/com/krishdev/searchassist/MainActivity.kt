@@ -37,6 +37,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.ActivityResultLauncher
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Slider
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.LaunchedEffect
@@ -65,17 +66,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState);
 
-        overlayPermissionLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { _ ->
-            if (Settings.canDrawOverlays(this)) {
-                // Permission granted
-                Log.d("MainActivity", "Overlay permission granted")
-            } else {
-                // Permission denied
-                Log.d("MainActivity", "Overlay permission denied")
-            }
-        }
-
-
         setContent {
                 // Main content
                 GestureLoggerApp()
@@ -102,19 +92,21 @@ class MainActivity : ComponentActivity() {
 
     // Function to start the Accessibility Service
     private fun startAccessibilityService(width: Int, height: Int, heightOffset: Int = 0) {
-        val intent = Intent(this, GestureDetectionService::class.java).apply {
-            putExtra("width", width)
-            putExtra("height", height)
-            putExtra("heightOffset", heightOffset)
-        }
-        startService(intent)
+//        val intent = Intent(this, GestureDetectionService::class.java).apply {
+//            putExtra("width", width)
+//            putExtra("height", height)
+//            putExtra("heightOffset", heightOffset)
+//        }
+//        startService(intent)
+        ServiceSharedInstance.sendOverlayStatus(true)
         Log.d("MainActivity", "Accessibility Service Started")
     }
 
     // Function to stop the Accessibility Service
     private fun stopAccessibilityService() {
-        val intent = Intent(this, GestureDetectionService::class.java)
-        stopService(intent)
+//        val intent = Intent(this, GestureDetectionService::class.java)
+//        stopService(intent)
+        ServiceSharedInstance.sendOverlayStatus(false)
         Log.d("MainActivity", "Accessibility Service Stopped")
     }
 
@@ -156,14 +148,22 @@ fun GestureLoggerApp() {
             // }
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.onBackground)
             ) {
 
                 // Stop gesture detection button
                 Button(onClick = {
                     stopAccessibilityService()
                     isGestureDetectionActive = false
-                }) {
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+                ) {
                     Text("Stop Accessibility Service")
                 }
             }
