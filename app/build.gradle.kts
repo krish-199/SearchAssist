@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.krishdev.searchassist"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.krishdev.searchassist"
@@ -46,19 +46,15 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.ui)            // Jetpack Compose UI
-    implementation(libs.androidx.material)    // Material Design
     implementation(libs.androidx.ui.tooling.preview)
-    implementation(libs.androidx.runner)    // Preview
+    implementation(libs.androidx.runner)
     debugImplementation(libs.androidx.ui.tooling)       // Tooling
     debugImplementation(libs.androidx.ui.test.manifest) // Test Manifest
-    implementation(libs.text.recognition)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
-    implementation(libs.material)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.navigation.fragment.ktx)
     implementation(libs.androidx.navigation.ui.ktx)
-    implementation(libs.vision.common)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
