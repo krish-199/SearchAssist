@@ -1,7 +1,9 @@
 package com.krishdev.searchassist
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.provider.Settings
 import android.text.TextUtils
@@ -10,20 +12,26 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -50,6 +58,7 @@ class MainActivity : ComponentActivity() {
     private val WIDTH_KEY = "width"
     private val HEIGHT_KEY = "height"
     private val HEIGHT_OFFSET_KEY = "heightOffset"
+    private val BLACKLIST_KEY = "blacklist"
 
 
     private fun promptEnableAccessibilityService() {
@@ -77,6 +86,9 @@ class MainActivity : ComponentActivity() {
                 GestureLoggerApp()
             }
         }
+
+        // Remove the call to selectAppsForBlacklist()
+        // selectAppsForBlacklist()
     }
 
 
@@ -90,7 +102,11 @@ class MainActivity : ComponentActivity() {
 
         while (colonSplitter.hasNext()) {
             val componentName = colonSplitter.next()
-            if (componentName.equals("$packageName/${SimpleAccessibilityService::class.java.name}", ignoreCase = true)) {
+            if (componentName.equals(
+                    "$packageName/${SimpleAccessibilityService::class.java.name}",
+                    ignoreCase = true
+                )
+            ) {
                 return true
             }
         }
@@ -98,7 +114,7 @@ class MainActivity : ComponentActivity() {
     }
 
     // Function to start the Accessibility Service
-    fun startAccessibilityService(width: Int, height: Int, heightOffset: Int = 0) {
+    fun startAccessibilityService() {
 //        val intent = Intent(this, GestureDetectionService::class.java).apply {
 //            putExtra("width", width)
 //            putExtra("height", height)
@@ -132,8 +148,10 @@ class MainActivity : ComponentActivity() {
         var width by remember { mutableFloatStateOf(savedWidth) }
         var height by remember { mutableFloatStateOf(savedHeight) }
         var heightOffset by remember { mutableFloatStateOf(savedHeightOffset) }
+        var showAppSelector by remember { mutableStateOf(false) }
 
-        val heightPixelMultiplier = 0.01f * LocalContext.current.resources.displayMetrics.heightPixels
+        val heightPixelMultiplier =
+            0.01f * LocalContext.current.resources.displayMetrics.heightPixels
 
         fun updatePrefs() {
             editor.putFloat(WIDTH_KEY, width)
@@ -148,80 +166,124 @@ class MainActivity : ComponentActivity() {
 //        editor.putFloat(HEIGHT_OFFSET_KEY, heightOffset)
 //        editor.apply()
 //    }
-
-        Box(
-            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
-            contentAlignment = Alignment.Center,
+        Column(
+            modifier = Modifier.fillMaxSize(),
+//            verticalArrangement = Arrangement.SpaceAround
         ) {
-            if (isGestureDetectionActive) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
+            // Header
+            Text(
+                text = "Search Assist",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+//                    .fillMaxWidth()
+                    .padding(20.dp)
+            )
 
-                    // Stop gesture detection button
-                    Button(onClick = {
-                        stopAccessibilityService()
-                        isGestureDetectionActive = false
-                    },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        )
+            // Description
+            Text(
+                text = "“Technology should adjust to us rather than requiring us to adjust to it.”" +
+                        "\n\nWith modern designs increasingly focusing user experience around search," +
+                        "Search Assist aids those design choices further, by auto selecting the search field in the foreground app" +
+                        "\n\nNote:- App currently has two features, \n1. By swiping up on gesture area, it would select the search field in the foreground app," +
+                        " if no search field found, it will enable android native one handed mode (only android 12+)" +
+                        "\n2. By swiping down on gesture area, it would launch sesame search if app is installed",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier
+                    .padding(top = 20.dp, bottom = 30.dp, start = 16.dp, end = 16.dp)
+            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Bottom,
+            ) {
+                // App name header
+//                Text("SearchAssist", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
+
+                if (isGestureDetectionActive) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier.fillMaxSize()
                     ) {
-                        Text("Stop Gesture Detection")
-                    }
-                }
-            } else {
-                // Show the start button and sliders when gesture detection is inactive
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                ) {
-                    Text("Width: ${width.toInt()}", color = MaterialTheme.colorScheme.onBackground)
-                    Slider(
-                        value = width,
-                        onValueChange = { width = it },
-                        valueRange = 0f..100f,
-                        steps = 9,
-                        modifier = Modifier.padding(16.dp),
-                        onValueChangeFinished = { updatePrefs() }
-                    )
 
-                    Text("Height: ${height.toInt()}", color = MaterialTheme.colorScheme.onBackground)
-                    Slider(
-                        value = height,
-                        onValueChange = { height = it },
-                        valueRange = 0f..100f,
-                        steps = 9,
-                        modifier = Modifier.padding(16.dp),
-                        onValueChangeFinished = { updatePrefs() },
-                    )
-
-                    Text("Height Offset: ${heightOffset.toInt()}", color = MaterialTheme.colorScheme.onBackground)
-                    Slider(
-                        value = heightOffset,
-                        onValueChange = { heightOffset = it },
-                        valueRange = 0f..50f,
-                        steps = 9,
-                        modifier = Modifier.padding(16.dp),
-                        onValueChangeFinished = { updatePrefs() }
-                    )
-
-                    Button(onClick = {
-                        if (!isAccessibilityServiceEnabled()) {
-                            promptEnableAccessibilityService()
-                        } else {
-                            startAccessibilityService(width.toInt(), height.toInt() * heightPixelMultiplier.toInt(), heightOffset.toInt() * heightPixelMultiplier.toInt())
-                            isGestureDetectionActive = true
+                        // Stop gesture detection button
+                        Button(
+                            onClick = {
+                                stopAccessibilityService()
+                                isGestureDetectionActive = false
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            )
+                        ) {
+                            Text("Stop Gesture Detection")
                         }
-                    }) {
-                        Text("Start Gesture Detection")
+                    }
+                } else {
+                    // Show the start button and sliders when gesture detection is inactive
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        Text("Width", color = MaterialTheme.colorScheme.onBackground)
+                        Slider(
+                            value = width,
+                            onValueChange = { width = it },
+                            valueRange = 0f..100f,
+                            steps = 9,
+                            modifier = Modifier.padding(16.dp),
+                            onValueChangeFinished = { updatePrefs() }
+                        )
+
+                        Text("Height", color = MaterialTheme.colorScheme.onBackground)
+                        Slider(
+                            value = height,
+                            onValueChange = { height = it },
+                            valueRange = 10f..100f,
+                            steps = 9,
+                            modifier = Modifier.padding(16.dp),
+                            onValueChangeFinished = { updatePrefs() },
+                        )
+
+                        Text("Height Offset", color = MaterialTheme.colorScheme.onBackground)
+                        Slider(
+                            value = heightOffset,
+                            onValueChange = { heightOffset = it },
+                            valueRange = 0f..50f,
+                            steps = 9,
+                            modifier = Modifier.padding(16.dp),
+                            onValueChangeFinished = { updatePrefs() }
+                        )
+
+                        Button(onClick = {
+                            if (!isAccessibilityServiceEnabled()) {
+                                promptEnableAccessibilityService()
+                            } else {
+                                startAccessibilityService()
+                                isGestureDetectionActive = true
+                            }
+                        }) {
+                            Text("Start Gesture Detection")
+                        }
+
+                        // OutlinedButton(onClick = { showAppSelector = true }) {
+                        //     Text("Select Apps to Blacklist")
+                        // }
+
+                        // if (showAppSelector) {
+                        //     SelectAppsForBlacklistDialog(onDismiss = { showAppSelector = false })
+                        // }
                     }
                 }
             }
         }
-        EdgeGestureDetector(width.toInt(), height.toInt() * heightPixelMultiplier.toInt(), heightOffset.toInt() * heightPixelMultiplier.toInt())
+        EdgeGestureDetector(
+            width.toInt(),
+            height.toInt() * heightPixelMultiplier.toInt(),
+            heightOffset.toInt() * heightPixelMultiplier.toInt()
+        )
 
     }
 
@@ -246,7 +308,11 @@ class MainActivity : ComponentActivity() {
                 .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f)),
             contentAlignment = Alignment.Center
         ) {
-            Text(text = "Perform gesture from the edge", modifier = Modifier.padding(4.dp), color = MaterialTheme.colorScheme.onSurface)
+            Text(
+                text = "Perform gesture from the edge",
+                modifier = Modifier.padding(4.dp),
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
         Box(
             modifier = Modifier
@@ -259,17 +325,85 @@ class MainActivity : ComponentActivity() {
                 .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f)),
             contentAlignment = Alignment.Center
         ) {
-            Text(text = "Perform gesture from the edge", modifier = Modifier.padding(4.dp), color = MaterialTheme.colorScheme.onSurface)
+            Text(
+                text = "Perform gesture from the edge",
+                modifier = Modifier.padding(4.dp),
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
-//    @Composable
-//    fun Main() {
-//
-//    }
+
+    @SuppressLint("QueryPermissionsNeeded")
+    @Composable
+    fun SelectAppsForBlacklistDialog(onDismiss: () -> Unit) {
+        val packageManager = LocalContext.current.packageManager
+        val apps = packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
+        val appNames = apps.map { it.loadLabel(packageManager).toString() to it.packageName }
+
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("Select Apps to Blacklist") },
+            text = {
+                LazyColumn {
+                    items(appNames) { app ->
+                        Text(
+                            text = app.first,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    addToBlacklist(app.second)
+                                }
+                                .padding(16.dp)
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = onDismiss) {
+                    Text("Done")
+                }
+            }
+        )
+    }
+
+    // Function to select apps and add to blacklist
+    private fun selectAppsForBlacklist() {
+        val packageManager = packageManager
+        val apps = packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
+        val appNames = apps.map { it.loadLabel(packageManager).toString() to it.packageName }
+
+        setContent {
+            AppTheme {
+                LazyColumn {
+                    items(appNames) { app ->
+                        Text(
+                            text = app.first,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    addToBlacklist(app.second)
+                                }
+                                .padding(16.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private fun addToBlacklist(packageName: String) {
+        val sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val editor = sharedPreferences.edit()
+        val blacklist =
+            sharedPreferences.getStringSet(BLACKLIST_KEY, mutableSetOf()) ?: mutableSetOf()
+        blacklist.add(packageName)
+        editor.putStringSet(BLACKLIST_KEY, blacklist)
+        editor.apply()
+    }
 
     @Preview(showBackground = true)
     @Composable
     fun GestureLoggerAppPreview() {
-        EdgeGestureDetector(60,900,10)
+        EdgeGestureDetector(60, 900, 10)
     }
 }
