@@ -1,32 +1,30 @@
 package com.krishdev.searchassist
 
+import android.accessibilityservice.AccessibilityService
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.Service
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.PixelFormat
-import android.os.Build
 import android.os.Handler
-import android.os.IBinder
 import android.os.Looper
 import android.provider.Settings
 import android.text.TextUtils
 import android.util.Log
-import android.util.DisplayMetrics
 import android.view.GestureDetector
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
-import android.view.accessibility.AccessibilityNodeInfo
-import android.view.MotionEvent
-import androidx.annotation.RequiresApi
+import android.view.accessibility.AccessibilityEvent
 import androidx.core.app.NotificationCompat
 
-class GestureDetectionService : Service(), ServiceSharedInstance.OnWindowChangeListener {
+
+// convert it into view class, and add it to the window manager
+
+class GestureDetectionService : AccessibilityService(),
+    ServiceSharedInstance.OnWindowChangeListener {
 
     private lateinit var gestureDetector: GestureDetector
     private lateinit var leftEdgeView: View
@@ -42,21 +40,26 @@ class GestureDetectionService : Service(), ServiceSharedInstance.OnWindowChangeL
     }
 
     override fun onWindowChange(window: String) {
-    try {
-       if (!(::leftEdgeView.isInitialized || ::rightEdgeView.isInitialized)) return;
-       val isSystemServiceOpen = window.toString()
-           .let { it.contains("launcher", ignoreCase = true) || it.contains("input", ignoreCase = true) }
-       if (isSystemServiceOpen) {
-           updateOverlays(4)
-       } else {
-           updateOverlays()
-       }
-        Log.d("GestureDetectionService", "Foreground window changed: $window")
-    } catch (e: Exception) {
-        // in case of any exception destroy service
-        Log.d("GestureDetectionService", "err ==>: $e")
-        onDestroy()
-    }
+        try {
+            if (!(::leftEdgeView.isInitialized || ::rightEdgeView.isInitialized)) return
+            val isSystemServiceOpen = window.toString()
+                .let {
+                    it.contains("launcher", ignoreCase = true) || it.contains(
+                        "input",
+                        ignoreCase = true
+                    )
+                }
+            if (isSystemServiceOpen) {
+                updateOverlays(4)
+            } else {
+                updateOverlays()
+            }
+            Log.d("GestureDetectionService", "Foreground window changed: $window")
+        } catch (e: Exception) {
+            // in case of any exception destroy service
+            Log.d("GestureDetectionService", "err ==>: $e")
+            onDestroy()
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -83,19 +86,35 @@ class GestureDetectionService : Service(), ServiceSharedInstance.OnWindowChangeL
         // startGestureDetection()
         return START_NOT_STICKY
     }
+//
+//    override fun onCreate() {
+//        super.onCreate()
+//        // createNotificationChannel()
+//        val gestureListener = GestureListener(this)
+//        gestureDetector = GestureDetector(this, gestureListener)
+//    //   startForeground(NOTIFICATION_ID, createNotification())
+//        windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+//        ServiceSharedInstance.registerWindowListener(this)
+//
+//        // Start gesture detection logic (you will need to add the appropriate detection logic)
+//        startGestureDetection()
+//       //  if (!showOverlay) addOverlays()
+//    }
 
-    override fun onCreate() {
+    override fun onServiceConnected() {
+        super.onServiceConnected()
+
         super.onCreate()
         // createNotificationChannel()
         val gestureListener = GestureListener(this)
         gestureDetector = GestureDetector(this, gestureListener)
-    //   startForeground(NOTIFICATION_ID, createNotification())
+        //   startForeground(NOTIFICATION_ID, createNotification())
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         ServiceSharedInstance.registerWindowListener(this)
 
         // Start gesture detection logic (you will need to add the appropriate detection logic)
         startGestureDetection()
-       //  if (!showOverlay) addOverlays()
+        //  if (!showOverlay) addOverlays()
     }
 
     private fun convertPercentToPixels(context: Context, percent: Int): Int {
@@ -113,7 +132,11 @@ class GestureDetectionService : Service(), ServiceSharedInstance.OnWindowChangeL
 
         while (colonSplitter.hasNext()) {
             val componentName = colonSplitter.next()
-            if (componentName.equals("$packageName/${GestureDetectionService::class.java.name}", ignoreCase = true)) {
+            if (componentName.equals(
+                    "$packageName/${GestureDetectionService::class.java.name}",
+                    ignoreCase = true
+                )
+            ) {
                 return true
             }
         }
@@ -166,7 +189,7 @@ class GestureDetectionService : Service(), ServiceSharedInstance.OnWindowChangeL
         val touchLayoutLeft = WindowManager.LayoutParams(
             width,
             height,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                     WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
                     WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
@@ -180,7 +203,7 @@ class GestureDetectionService : Service(), ServiceSharedInstance.OnWindowChangeL
         val touchLayoutRight = WindowManager.LayoutParams(
             width,
             height,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                     WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
                     WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
@@ -196,13 +219,17 @@ class GestureDetectionService : Service(), ServiceSharedInstance.OnWindowChangeL
         Log.d("GestureDetectionService", "Overlay views added.")
     }
 
-    private fun updateOverlays(width: Int = this.width, height: Int = this.height, heightOffset: Int = this.heightOffset) {
+    private fun updateOverlays(
+        width: Int = this.width,
+        height: Int = this.height,
+        heightOffset: Int = this.heightOffset
+    ) {
         // Add the view to the window manager to receive touch events globally
         // Create layout parameters for the left edge
         val touchLayoutLeft = WindowManager.LayoutParams(
             width,
             height,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                     WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
                     WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
@@ -216,7 +243,7 @@ class GestureDetectionService : Service(), ServiceSharedInstance.OnWindowChangeL
         val touchLayoutRight = WindowManager.LayoutParams(
             width,
             height,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                     WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
                     WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
@@ -225,8 +252,14 @@ class GestureDetectionService : Service(), ServiceSharedInstance.OnWindowChangeL
             gravity = Gravity.END or Gravity.BOTTOM // Move to the right edge of the screen
             y = heightOffset
         }
-        if (::leftEdgeView.isInitialized && leftEdgeView.isAttachedToWindow) windowManager.updateViewLayout(leftEdgeView, touchLayoutLeft)
-        if (::rightEdgeView.isInitialized && rightEdgeView.isAttachedToWindow) windowManager.updateViewLayout(rightEdgeView, touchLayoutRight)
+        if (::leftEdgeView.isInitialized && leftEdgeView.isAttachedToWindow) windowManager.updateViewLayout(
+            leftEdgeView,
+            touchLayoutLeft
+        )
+        if (::rightEdgeView.isInitialized && rightEdgeView.isAttachedToWindow) windowManager.updateViewLayout(
+            rightEdgeView,
+            touchLayoutRight
+        )
 
         Log.d("GDS", "Updating overlay")
     }
@@ -279,6 +312,8 @@ class GestureDetectionService : Service(), ServiceSharedInstance.OnWindowChangeL
         }
     }
 
-    override fun onBind(p0: Intent): IBinder? { return null }
+    override fun onAccessibilityEvent(p0: AccessibilityEvent) {}
+
+    override fun onInterrupt() {}
 
 }
