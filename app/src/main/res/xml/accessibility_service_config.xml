@@ -1,19 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:description="@string/accessibility_service_description"
-    android:accessibilityEventTypes="typeAllMask"
-    android:accessibilityFlags="flagReportViewIds|flagRetrieveInteractiveWindows|flagIncludeNotImportantViews"
-    android:accessibilityFeedbackType="feedbackSpoken"
-    android:notificationTimeout="100"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeViewFocused"
+    android:accessibilityFlags="flagReportViewIds|flagRetrieveInteractiveWindows"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:notificationTimeout="10"
     android:canRetrieveWindowContent="true"
-    android:canRequestTouchExplorationMode="true"
     android:canPerformGestures="true"
-    android:canRequestFilterKeyEvents="true"
-    android:canTakeScreenshot="true"
-    android:settingsActivity="com.krishdev.searchassist.SettingsActivity"
-    android:packageNames="com.krishdev.searchassist"
     android:canRequestEnhancedWebAccessibility="true">
-<!--    android:canRequestTouchExplorationMode="true"-->
 
     <meta-data
         android:name="android.accessibilityservice"

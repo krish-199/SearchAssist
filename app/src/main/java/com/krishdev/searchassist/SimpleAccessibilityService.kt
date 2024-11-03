@@ -6,25 +6,23 @@ import android.accessibilityservice.GestureDescription
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.graphics.Path
-import android.graphics.Rect
-import android.graphics.Paint
-import android.graphics.Color
 import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.PixelFormat
-import android.os.Build
+import android.graphics.Rect
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import android.util.DisplayMetrics
+import android.util.Log
+import android.view.View
+import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
 import android.view.inputmethod.InputMethodManager
-import android.view.WindowManager
-import android.view.View
 import android.widget.Toast
-import androidx.annotation.RequiresApi
 
 class BoundingBoxView(context: Context, private val col: Int = Color.RED) : View(context) {
     private val paint = Paint().apply {
@@ -47,7 +45,12 @@ class BoundingBoxView(context: Context, private val col: Int = Color.RED) : View
     }
 }
 
-class GestureStrokeView(context: Context, private val startX: Float, private val startY: Float, private val color: Int = Color.BLUE) : View(context) {
+class GestureStrokeView(
+    context: Context,
+    private val startX: Float,
+    private val startY: Float,
+    private val color: Int = Color.BLUE
+) : View(context) {
     private val paint = Paint().apply {
         this.color = color
         style = Paint.Style.STROKE
@@ -56,20 +59,31 @@ class GestureStrokeView(context: Context, private val startX: Float, private val
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        canvas.drawLine(startX, startY, startX, startY + 10, paint) // Example line, adjust as needed
+        canvas.drawLine(
+            startX,
+            startY,
+            startX,
+            startY + 10,
+            paint
+        ) // Example line, adjust as needed
     }
 }
 
-class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance.OnGestureDetectedListener {
+class SimpleAccessibilityService : AccessibilityService(),
+    ServiceSharedInstance.OnGestureDetectedListener {
 
     private val gestureActionReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == "com.krishdev.ACTION_GATHER_ACCESSIBILITY_TAGS") {
-                Log.d("SimpleAccessibilityService", "Broadcast received: gathering accessibility data")
+                Log.d(
+                    "SimpleAccessibilityService",
+                    "Broadcast received: gathering accessibility data"
+                )
                 gatherAccessibilityData()
             }
         }
     }
+
     // This method is called when the listener is invoked
     override fun onGestureDetected(isGestureDetected: Boolean) {
         // Handle the gesture detection event here
@@ -80,20 +94,24 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
     }
 
     private var isKeyboardOpen = false
-    private var searchNodes = mutableListOf<AccessibilityNodeInfo>();
+    private var searchNodes = mutableListOf<AccessibilityNodeInfo>()
     private var debug = false
     private lateinit var overlayView: GestureDetectionOverlay
+    private var isOverlayDisabled = false
 
     override fun onServiceConnected() {
         // Register the receiver to listen for gesture actions
         val info = AccessibilityServiceInfo()
-        info.eventTypes = AccessibilityEvent.TYPES_ALL_MASK
+        info.eventTypes =
+            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or AccessibilityEvent.TYPE_VIEW_FOCUSED
 
-        info.feedbackType = AccessibilityServiceInfo.FEEDBACK_SPOKEN // Feedback type (e.g., for screen readers)
+        info.feedbackType =
+            AccessibilityServiceInfo.FEEDBACK_GENERIC // Feedback type (e.g., for screen readers)
         info.flags = AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS or
                 AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
 
-        info.notificationTimeout = 10L // Set the event notification delay to reduce excessive callbacks
+        info.notificationTimeout =
+            10L // Set the event notification delay to reduce excessive callbacks
 
         serviceInfo = info
 
@@ -110,7 +128,8 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
 
 
     private fun checkImeVisibility(): Boolean {
-        val inputMethodManager = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        val inputMethodManager =
+            getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         val isImeVisible = inputMethodManager.isAcceptingText
         if (isImeVisible) isKeyboardOpen = true
         Log.d("IME_VISIBILITY", "IME is ${if (isImeVisible) "visible" else "not visible"}")
@@ -121,54 +140,63 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
         //Log.d("SimpleAccessibilityService", "Accessibility event received ${event?.eventType}")
         if (event == null) return
 
+        val focusedClassName = event.className?.toString()
+//        var isKeyboardOpen = isKeyboardOpen
+        if (focusedClassName == "android.widget.EditText") {
+            Log.d("SAS", "A text field was focused, keyboard might be opening soon.")
+            isKeyboardOpen = true
+        }
+
         when (event.eventType) {
-            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
-                val currentPackage = event.packageName.toString();
-                Log.d("SAS", "Current package name $currentPackage")
+            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED, AccessibilityEvent.TYPE_VIEW_FOCUSED -> {
+                val currentPackage = event.packageName?.toString()
+                val className = event.className?.toString()
+                if (currentPackage == null || className == null) return
+
+                val isSystemServiceOpen = currentPackage.contains("launcher", ignoreCase = true)
+                val isInputOpen = className == "android.widget.EditText"
+
+                // ignoring keyboard event usint foucsed event for diabling keybaord
+                if (currentPackage == "com.google.android.inputmethod.latin" || currentPackage == this.packageName) return
+
 //                ServiceSharedInstance.sendForegroundWindow(currentPackage)
-                val isSystemServiceOpen = currentPackage
-                    .let { it.contains("launcher", ignoreCase = true) || it.contains("input", ignoreCase = true) }
-
-                val isInputOpen = (event.className?.contains("InputMethod", ignoreCase = true) == true || event.className == "com.android.inputmethod.latin") && currentPackage.contains("input", ignoreCase = true)
-
-                if (isSystemServiceOpen || isInputOpen) {
+//                val isSystemServiceOpen = currentPackage
+//                    .let { it.contains("launcher", ignoreCase = true) || it.contains("input", ignoreCase = true) }
+//
+                Log.d(
+                    "SAS",
+                    "Acc triggered ==> $currentPackage, $className, $isSystemServiceOpen, $isInputOpen"
+                )
+                if ((isSystemServiceOpen || isInputOpen)) {
                     overlayView.enableOverlayOnWindowChange(false)
-                } else {
+                    isOverlayDisabled = true
+                } else if (isOverlayDisabled) {
                     overlayView.enableOverlayOnWindowChange(true)
+                    isOverlayDisabled = false
                 }
 
-                // Check if the window class name is related to the input method
-                 if (event.className?.contains("InputMethod", ignoreCase = true) == true || event.className == "com.android.inputmethod.latin") {
-                     Log.d("SAS", "Keyboard is likely open (window state changed).")
-                 }
-                isKeyboardOpen = true
+                if (isInputOpen) isKeyboardOpen = true
+
+//                // Check if the window class name is related to the input method
+//                 if (event.className?.contains("InputMethod", ignoreCase = true) == true || event.className == "com.android.inputmethod.latin") {
+//                     Log.d("SAS", "Keyboard is likely open (window state changed).")
+//                 }
+//                isKeyboardOpen = true
             }
+
+//            AccessibilityEvent.TYPE_VIEW_FOCUSED -> {
+//                Log.d("ACC", "New view focused $focusedClassName")
+//            }
 //
 //            AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> {
-//                Log.d("SAS", "Window content changed")
+//                Log.d("SAS", "Window content changed class $focusedClassName")
 //                // You could further analyze this event to see if it's due to the keyboard opening.
 //            }
-
-            AccessibilityEvent.TYPE_VIEW_FOCUSED -> {
-                val focusedClassName = event.className?.toString()
-                Log.d("SAS", "View focused: $focusedClassName")
-
-                // If a text input field has been focused, it's a sign that the keyboard might open
-                if (focusedClassName == "android.widget.EditText") {
-                    Log.d("SAS", "A text field was focused, keyboard might be opening soon.")
-                    isKeyboardOpen = true
-                }
-            }
         }
     }
 
     override fun onInterrupt() {
         // Handle interruptions
-    }
-
-    override fun onDestroy() {
-//        unregisterReceiver(gestureActionReceiver)
-        super.onDestroy()
     }
 
     private fun enableOneHandedMode() {
@@ -187,7 +215,13 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
 
         // Create a GestureDescription using the path
         val gestureDescription = GestureDescription.Builder()
-            .addStroke(GestureDescription.StrokeDescription(path, 0, 10)) // Duration of 500ms for the swipe
+            .addStroke(
+                GestureDescription.StrokeDescription(
+                    path,
+                    0,
+                    10
+                )
+            ) // Duration of 500ms for the swipe
             .build()
 
         // Dispatch the gesture
@@ -208,12 +242,12 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
             //         node.getBoundsInScreen(bounds)
             //         bounds.height() // Calculate the width of the node
             //     }
-            
+
             //     // Perform the desired action on the sorted nodes
             //     for (node in searchNodes) {
             //         drawBoxOnNode(node, Color.MAGENTA)
             //     }
-            
+
             //     // Perform action on the first node in the sorted list
             //     performAction(searchNodes[0])
             // } 
@@ -225,12 +259,18 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
             val windowList = windows
             if (windowList.isNotEmpty()) {
                 for (window in windowList) {
-                    Log.d("SimpleAccessibilityService", "Window Title: ${window.title}, IsActive: ${window.isActive}, IsFocused: ${window.isFocused}")
+                    Log.d(
+                        "SimpleAccessibilityService",
+                        "Window Title: ${window.title}, IsActive: ${window.isActive}, IsFocused: ${window.isFocused}"
+                    )
                     rootNode = window.root
                     if (rootNode != null) {
                         if (extractTextFromNode(rootNode)) return
                     } else {
-                        Log.d("SimpleAccessibilityService", "Window root node is null for window: ${window.title}")
+                        Log.d(
+                            "SimpleAccessibilityService",
+                            "Window root node is null for window: ${window.title}"
+                        )
                     }
                 }
             } else {
@@ -241,7 +281,7 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
         showErrorToast()
     }
 
-//    @RequiresApi(Build.VERSION_CODES.R)
+    //    @RequiresApi(Build.VERSION_CODES.R)
 //    private fun isKeyboardOpen(): Boolean {
 //        val rect = Rect()
 //        rootInActiveWindow.getBoundsInScreen(rect)
@@ -254,34 +294,36 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
 //        val keypadHeight = screenHeight - rect.bottom
 //        return keypadHeight > screenHeight * 0.15
 //    }
-     private fun isKeyboardOpen(): Boolean {
-         // dealy of 100 ms
-         if(checkImeVisibility()) return true
-         if (isKeyboardOpen) return true
+    private fun isKeyboardOpen(): Boolean {
+        // dealy of 100 ms
+        if (checkImeVisibility()) return true
+        if (isKeyboardOpen) return true
         Log.d("SAS", "Checking for keyboard open before delay")
 
         Log.d("SAS", "Checking for keyboard open after delay")
-         val windowsList = windows // Get the list of active windows
-         if (windowsList.isEmpty()) {
-             Log.d("SAS", "No active windows found")
-             return false
-         }
-         for (window in windowsList) {
-             // Check if the window is an input method (keyboard) window
-             val className = window.root?.className?.toString()
-             val windowType = window.type
+        val windowsList = windows // Get the list of active windows
+        if (windowsList.isEmpty()) {
+            Log.d("SAS", "No active windows found")
+            return false
+        }
+        for (window in windowsList) {
+            // Check if the window is an input method (keyboard) window
+            val className = window.root?.className?.toString()
+            val windowType = window.type
 
-             Log.d("SAS", "Window class name: $className, type: $windowType")
+            Log.d("SAS", "Window class name: $className, type: $windowType")
 
-             // You can identify the keyboard window by its class name or type
-             if (windowType == AccessibilityWindowInfo.TYPE_INPUT_METHOD) {
-                 Log.d("SAS", "Keyboard window detected!")
-                 isKeyboardOpen = true
-                 return true
-             }
-         }
-         return false
-     }
+            // You can identify the keyboard window by its class name or type
+            if (windowType == AccessibilityWindowInfo.TYPE_INPUT_METHOD) {
+                Log.d("SAS", "Keyboard window detected!")
+                isKeyboardOpen = true
+                overlayView.enableOverlayOnWindowChange(false)
+                isOverlayDisabled = true
+                return true
+            }
+        }
+        return false
+    }
 
 
     private fun drawBoxOnNode(node: AccessibilityNodeInfo, color: Int = Color.RED) {
@@ -295,7 +337,10 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
         val nodeFoucasble = node.isFocusable
         val nodeCheckable = node.isCheckable
 
-        Log.d("DrawNode", "Node Text: $nodeText Node Description: $nodeDes Node Id: $nodeId Node Class: $nodeClass Node Clickable: $nodeClickacble Node Editable: $nodeEditable Node Focusable: $nodeFoucasble Node Checkable: $nodeCheckable")
+        Log.d(
+            "DrawNode",
+            "Node Text: $nodeText Node Description: $nodeDes Node Id: $nodeId Node Class: $nodeClass Node Clickable: $nodeClickacble Node Editable: $nodeEditable Node Focusable: $nodeFoucasble Node Checkable: $nodeCheckable"
+        )
         val windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         val boundingBoxView = BoundingBoxView(this, color)
         val params = WindowManager.LayoutParams(
@@ -313,10 +358,10 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
         bounds.bottom -= navigationBarHeight
 
         boundingBoxView.setBounds(bounds)
-            // Remove the box after 300ms
-    Handler(Looper.getMainLooper()).postDelayed({
-        windowManager.removeView(boundingBoxView)
-    }, 3000)
+        // Remove the box after 300ms
+        Handler(Looper.getMainLooper()).postDelayed({
+            windowManager.removeView(boundingBoxView)
+        }, 3000)
     }
 
     // Function to get the height of the navigation bar
@@ -341,7 +386,7 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
         val widthPercentage = (nodeWidth.toFloat() / screenWidth) * 100
 
         Log.d("NODE", "Node width percentage: $widthPercentage% and height: ${bounds.height()}")
-        if ((widthPercentage > 40 && 30 < bounds.height() && bounds.height() < 400 )) {
+        if ((widthPercentage > 40 && 30 < bounds.height() && bounds.height() < 400)) {
             drawBoxOnNode(node, Color.YELLOW)
             return true
         }
@@ -353,7 +398,9 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
         val bounds = Rect()
         node.getBoundsInScreen(bounds)
         // Assuming search icon is usually small and located at the top right corner
-        if ( bounds.width() in 1..350 && bounds.height() in 1..350 && (bounds.width().toDouble()/bounds.height().toDouble()) in 0.5..2.8) {
+        if (bounds.width() in 1..350 && bounds.height() in 1..350 && (bounds.width()
+                .toDouble() / bounds.height().toDouble()) in 0.5..2.8
+        ) {
             drawBoxOnNode(node, Color.CYAN)
             return true
         }
@@ -361,11 +408,13 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
     }
 
     private fun performAction(node: AccessibilityNodeInfo) {
-        if (node.performAction(AccessibilityNodeInfo.ACTION_CLICK) || node.performAction(AccessibilityNodeInfo.ACTION_FOCUS) || node.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS)) {
+        if (node.performAction(AccessibilityNodeInfo.ACTION_CLICK) || node.performAction(
+                AccessibilityNodeInfo.ACTION_FOCUS
+            ) || node.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS)
+        ) {
             Log.d("SAS", "Click action performed")
             drawBoxOnNode(node, Color.GREEN)
-        }
-        else {
+        } else {
             Log.d("SAS", "Performing gesture")
             drawBoxOnNode(node)
             performClickAtNodeCoordinates(node)
@@ -382,7 +431,7 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
         if ((node.isClickable && (node.isEditable)) || isSearchIcon(node) || isSearchBoxBig(node)) {
             performAction(node)
             // check if keyboard open intent has been thrown
-                    // Check if the keyboard is open
+            // Check if the keyboard is open
 //            val isKeyboardOpen = isKeyboardOpen();
 //            Log.d("SAS", "keyboard check done: ==>$isKeyboardOpen");
             return true
@@ -414,7 +463,7 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
         val nodeHint = nHint?.contains("search", ignoreCase = true)
         val isHeader = nId?.substringAfterLast(":")?.let { id ->
             id.contains("header", ignoreCase = true) ||
-            id.contains("title", ignoreCase = true)
+                    id.contains("title", ignoreCase = true)
         }
         if (isHeader == true) {
             Log.d("SAS", "Header found")
@@ -422,16 +471,16 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
         }
         //Perform click action on the node
         if (nodeDes == true || nodeText == true || nodeId == true || nodeHint == true) {
-            node.text?.toString()?.let { Log.d("NODE", "text:: "+it) }
-            node.contentDescription?.toString()?.let { Log.d("NODE", "Cont:: "+it) }
-            node.viewIdResourceName?.toString()?.let { Log.d("NODE", "Id:: "+it) }
+            node.text?.toString()?.let { Log.d("NODE", "text:: " + it) }
+            node.contentDescription?.toString()?.let { Log.d("NODE", "Cont:: " + it) }
+            node.viewIdResourceName?.toString()?.let { Log.d("NODE", "Id:: " + it) }
             return getClickAbleNode(node)
         }
         // Recursively traverse child nodes
         for (i in 0 until node.childCount) {
             val childNode = node.getChild(i)
             if (childNode != null) {
-                if(extractTextFromNode(childNode)) {
+                if (extractTextFromNode(childNode)) {
                     return true
                 }
             }
@@ -449,7 +498,8 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
     private fun drawStroke(centerX: Int, centerY: Int) {
         // return
         if (!debug) return
-        val gestureStrokeView = GestureStrokeView(this, centerX.toFloat(), centerY.toFloat(), Color.RED)
+        val gestureStrokeView =
+            GestureStrokeView(this, centerX.toFloat(), centerY.toFloat(), Color.RED)
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.MATCH_PARENT,
@@ -492,8 +542,8 @@ class SimpleAccessibilityService : AccessibilityService(), ServiceSharedInstance
         val gestureDescription = GestureDescription.Builder()
             .addStroke(GestureDescription.StrokeDescription(path, 0, 100))
             .build()
-            
-            // Dispatch the gesture with a callback
+
+        // Dispatch the gesture with a callback
         dispatchGesture(gestureDescription, null, null)
     }
 }

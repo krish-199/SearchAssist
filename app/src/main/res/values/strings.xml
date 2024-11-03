@@ -1,6 +1,11 @@
 <resources>
     <string name="app_name">Search Assist</string>
-    <string name="accessibility_service_description">Assists in selecting search fields in foreground applications</string>
+    <string name="accessibility_service_description">Search Assist requires accessibility service for following features.
+        \n\n○ View and control screen\n - To add service trigger zones
+        \n\n○ View and perform actions\n - To select identified search field
+        \n\n○ Observe your actions\n - To disable app when keyboard or launcher is active
+        \n\nThe usage of this accessibility features will NEVER be used for something else.
+        No data will be collected or sent across network</string>
     <string name="action_settings">Settings</string>
     <!-- Strings used for fragments for navigation -->
     <string name="first_fragment_label">First Fragment</string>

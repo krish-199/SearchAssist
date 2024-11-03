@@ -9,6 +9,9 @@
         <package android:name="ninja.sesame.app.edge" />
 
         <!-- Allow queries for apps with launcher activity -->
+<!--        <intent>-->
+<!--            <action android:name="*"/>-->
+<!--        </intent>-->
         <intent>
             <action android:name="android.intent.action.MAIN" />
 
