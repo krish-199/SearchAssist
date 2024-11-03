@@ -71,7 +71,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val sharedPreferences = getSharedPreferences("AppPrefs", MODE_PRIVATE)
-        val isFirstRun = sharedPreferences.getBoolean("isFirstRun", true)
+        val isFirstRun = sharedPreferences.getBoolean("isFirstRun", false)
 
         if (isFirstRun) {
             val intent = Intent(this, IntroductoryActivity::class.java)
