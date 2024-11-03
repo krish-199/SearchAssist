@@ -48,6 +48,7 @@ dependencies {
     implementation(libs.androidx.ui)            // Jetpack Compose UI
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.runner)
+    implementation(libs.material)
     debugImplementation(libs.androidx.ui.tooling)       // Tooling
     debugImplementation(libs.androidx.ui.test.manifest) // Test Manifest
     implementation(libs.androidx.core.ktx)
