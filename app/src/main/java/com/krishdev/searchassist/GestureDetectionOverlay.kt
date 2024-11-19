@@ -29,6 +29,8 @@ class GestureDetectionOverlay(context: Context, private val windowManager: Windo
     private val WIDTH_KEY = "width"
     private val HEIGHT_KEY = "height"
     private val HEIGHT_OFFSET_KEY = "heightOffset"
+    private val DEBUG_KEY = "debug"
+    private var debug = false
     private lateinit var sharedPreferences: SharedPreferences
     private val preferenceChangeListener =
         SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences: SharedPreferences, key ->
@@ -48,13 +50,14 @@ class GestureDetectionOverlay(context: Context, private val windowManager: Windo
                         "Preferences changed: width=$width, height=$height, heightOffset=$heightOffset, heightPixel-$heightPixelMultiplier"
                     )
                 }
+                DEBUG_KEY -> {
+                    debug = sharedPreferences.getBoolean(DEBUG_KEY, false)
+                    removeOverlays()
+                    startGestureDetection()
+                    Log.d("GestureDetectionOverlay", "Debug mode changed: $debug")
+                }
             }
         }
-
-    companion object {
-        const val CHANNEL_ID = "GestureDetectionChannel"
-        const val debug = false
-    }
 
     fun onCreate() {
         val gestureListener = GestureListener(context)
@@ -68,6 +71,7 @@ class GestureDetectionOverlay(context: Context, private val windowManager: Windo
         height = (sharedPreferences.getFloat(HEIGHT_KEY, 40f) * heightPixelMultiplier).toInt()
         heightOffset =
             (sharedPreferences.getFloat(HEIGHT_OFFSET_KEY, 0f) * heightPixelMultiplier).toInt()
+        debug = sharedPreferences.getBoolean(DEBUG_KEY, false)
         sharedPreferences.registerOnSharedPreferenceChangeListener(preferenceChangeListener)
         ServiceSharedInstance.registerOverlayListener(this)
         // get shrerad preferences values
@@ -80,10 +84,10 @@ class GestureDetectionOverlay(context: Context, private val windowManager: Windo
         rightEdgeView = View(context)
         if (debug) {
             leftEdgeView = View(context).apply {
-                setBackgroundColor(Color.parseColor("#80FF0000")) // Set the background color (e.g., semi-transparent red)
+                setBackgroundColor(Color.parseColor("#40FF0000")) // Set the background color (e.g., semi-transparent red)
             }
             rightEdgeView = View(context).apply {
-                setBackgroundColor(Color.parseColor("#8000FF00")) // Set the background color (e.g., semi-transparent green)
+                setBackgroundColor(Color.parseColor("#4000FF00")) // Set the background color (e.g., semi-transparent green)
             }
         }
 

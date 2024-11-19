@@ -16,6 +16,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -30,6 +31,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -50,8 +53,8 @@ class MainActivity : ComponentActivity() {
 
 
     companion object {
-        private lateinit var overlayPermissionLauncher: ActivityResultLauncher<Intent>
         var isGestureDetectionActive = mutableStateOf(false)
+        var isDebugMode = mutableStateOf(false)
     }
 
     private val PREFS_NAME = "GestureLoggerPrefs"
@@ -59,6 +62,7 @@ class MainActivity : ComponentActivity() {
     private val HEIGHT_KEY = "height"
     private val HEIGHT_OFFSET_KEY = "heightOffset"
     private val BLACKLIST_KEY = "blacklist"
+    private val DEBUG_KEY = "debug"
 
 
     private fun promptEnableAccessibilityService() {
@@ -149,6 +153,7 @@ class MainActivity : ComponentActivity() {
         var height by remember { mutableFloatStateOf(savedHeight) }
         var heightOffset by remember { mutableFloatStateOf(savedHeightOffset) }
         var showAppSelector by remember { mutableStateOf(false) }
+        var isDebugMode by remember { mutableStateOf(sharedPreferences.getBoolean(DEBUG_KEY, false)) }
 
         val heightPixelMultiplier =
             0.01f * LocalContext.current.resources.displayMetrics.heightPixels
@@ -256,6 +261,31 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier.padding(16.dp),
                             onValueChangeFinished = { updatePrefs() }
                         )
+
+                        // Debug mode switch
+                        if (BuildConfig.DEBUG) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Debug Mode", color = MaterialTheme.colorScheme.onBackground)
+                                Switch(
+                                    checked = isDebugMode,
+                                    onCheckedChange = {
+                                        isDebugMode = it
+                                        editor.putBoolean(DEBUG_KEY, it).apply()
+                                        MainActivity.isDebugMode.value = it
+                                    },
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = MaterialTheme.colorScheme.primary,
+                                        uncheckedThumbColor = MaterialTheme.colorScheme.onSurface
+                                    )
+                                )
+                            }
+                        }
 
                         Button(onClick = {
                             if (!isAccessibilityServiceEnabled()) {
@@ -396,6 +426,7 @@ class MainActivity : ComponentActivity() {
         val editor = sharedPreferences.edit()
         val blacklist =
             sharedPreferences.getStringSet(BLACKLIST_KEY, mutableSetOf()) ?: mutableSetOf()
+        // TODO: Fix below message
         blacklist.add(packageName)
         editor.putStringSet(BLACKLIST_KEY, blacklist)
         editor.apply()

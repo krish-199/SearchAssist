@@ -3,6 +3,7 @@ package com.krishdev.searchassist
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.accessibilityservice.GestureDescription
+import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -12,11 +13,13 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.PixelFormat
 import android.graphics.Rect
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.View
+import android.view.WindowInsets
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
@@ -118,6 +121,9 @@ class SimpleAccessibilityService : AccessibilityService(),
         ServiceSharedInstance.registerListener(this)
         Log.d("SimpleAccessibilityService", "Service connected")
 
+        val sharedPreferences = getSharedPreferences("GestureLoggerPrefs", Context.MODE_PRIVATE)
+        debug = sharedPreferences.getBoolean("debug", false)
+
         val windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         // code is working as excepted do a cleanup of code to properly manage
         overlayView = GestureDetectionOverlay(this, windowManager)
@@ -136,6 +142,7 @@ class SimpleAccessibilityService : AccessibilityService(),
         return isImeVisible
     }
 
+    @SuppressLint("SwitchIntDef")
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         //Log.d("SimpleAccessibilityService", "Accessibility event received ${event?.eventType}")
         if (event == null) return
@@ -155,6 +162,7 @@ class SimpleAccessibilityService : AccessibilityService(),
 
                 val isSystemServiceOpen = currentPackage.contains("launcher", ignoreCase = true)
                 val isInputOpen = className == "android.widget.EditText"
+                val isFullScreen = isFullScreenMode()
 
                 // ignoring keyboard event usint foucsed event for diabling keybaord
                 if (currentPackage == "com.google.android.inputmethod.latin" || currentPackage == this.packageName) return
@@ -167,7 +175,7 @@ class SimpleAccessibilityService : AccessibilityService(),
                     "SAS",
                     "Acc triggered ==> $currentPackage, $className, $isSystemServiceOpen, $isInputOpen"
                 )
-                if ((isSystemServiceOpen || isInputOpen)) {
+                if ((isSystemServiceOpen || isInputOpen || isFullScreen)) {
                     overlayView.enableOverlayOnWindowChange(false)
                     isOverlayDisabled = true
                 } else if (isOverlayDisabled) {
@@ -545,5 +553,36 @@ class SimpleAccessibilityService : AccessibilityService(),
 
         // Dispatch the gesture with a callback
         dispatchGesture(gestureDescription, null, null)
+    }
+
+
+    private fun isFullScreenMode(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // API 30+: Use WindowInsets
+            val insets = (getSystemService(WINDOW_SERVICE) as? WindowManager)?.currentWindowMetrics?.windowInsets
+            val isNavigationBarVisible = insets?.isVisible(WindowInsets.Type.navigationBars()) ?: true
+            !isNavigationBarVisible
+        } else {
+            // API < 30: Use legacy flags
+            val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+            val displayMetrics = DisplayMetrics()
+            windowManager.defaultDisplay.getMetrics(displayMetrics)
+        
+            // Compare current screen dimensions to app dimensions
+            val screenHeight = displayMetrics.heightPixels
+            val screenWidth = displayMetrics.widthPixels
+        
+            val windowList = windows
+            for (window in windowList) {
+                val rect = Rect()
+                window.root?.getBoundsInScreen(rect)
+        
+                if (rect.width() == screenWidth && rect.height() == screenHeight) {
+                    return true
+                }
+            }
+        
+            return false
+        }
     }
 }
