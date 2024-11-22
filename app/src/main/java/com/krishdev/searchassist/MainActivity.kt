@@ -47,10 +47,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
+import androidx.fragment.app.commit
 import com.krishdev.searchassist.ui.theme.AppTheme
 
-class MainActivity : ComponentActivity() {
-
+class MainActivity : FragmentActivity() {
 
     companion object {
         var isGestureDetectionActive = mutableStateOf(false)
@@ -63,13 +65,6 @@ class MainActivity : ComponentActivity() {
     private val HEIGHT_OFFSET_KEY = "heightOffset"
     private val BLACKLIST_KEY = "blacklist"
     private val DEBUG_KEY = "debug"
-
-
-    private fun promptEnableAccessibilityService() {
-        val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-        startActivity(intent)
-    }
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -84,25 +79,35 @@ class MainActivity : ComponentActivity() {
             return
         }
 
-        setContent {
-            // Main content
-            AppTheme {
-                GestureLoggerApp()
+        setContentView(R.layout.activity_main)
+
+        if (savedInstanceState == null) {
+            supportFragmentManager.commit {
+                replace(R.id.fragment_container, InfoFragment())
             }
         }
-
-        // Remove the call to selectAppsForBlacklist()
-        // selectAppsForBlacklist()
     }
 
+    fun navigateToConfig() {
+        supportFragmentManager.commit {
+            replace(R.id.fragment_container, ConfigFragment())
+            addToBackStack(null)
+        }
+    }
 
-    private fun isAccessibilityServiceEnabled(): Boolean {
+    fun promptEnableAccessibilityService() {
+        val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+        startActivity(intent)
+    }
+
+    fun isAccessibilityServiceEnabled(): Boolean {
         val enabledServices = Settings.Secure.getString(
             contentResolver,
             Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
         )
+        Log.d("MainActivity", "Enabled Services: $enabledServices")
         val colonSplitter = TextUtils.SimpleStringSplitter(':')
-        colonSplitter.setString(enabledServices)
+        if (enabledServices != null) { colonSplitter.setString(enabledServices) }
 
         while (colonSplitter.hasNext()) {
             val componentName = colonSplitter.next()
@@ -138,7 +143,6 @@ class MainActivity : ComponentActivity() {
         Log.d("MainActivity", "Accessibility Service Stopped")
         isGestureDetectionActive.value = false
     }
-
 
     @Composable
     fun GestureLoggerApp() {
