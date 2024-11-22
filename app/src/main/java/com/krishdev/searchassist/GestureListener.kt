@@ -1,5 +1,6 @@
 package com.krishdev.searchassist
 
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -111,7 +112,11 @@ class GestureListener(private val context: Context) : GestureDetector.SimpleOnGe
             val packageName = "ninja.sesame.app.edge" // Replace with the package name of the app you want to launch
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 val launchIntentSender = context.packageManager.getLaunchIntentSenderForPackage(packageName)
-                context.startIntentSender(launchIntentSender, null, 0, 0, 0)
+                try {
+                    context.startIntentSender(launchIntentSender, null, 0, 0, 0)
+                } catch (e: ActivityNotFoundException) {
+                    Log.e(TAG, "Activity not found for package: $packageName")
+                }
 
             } else {
                 val launchIntent = context.packageManager.getLaunchIntentForPackage(packageName)
