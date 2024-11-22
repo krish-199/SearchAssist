@@ -26,7 +26,7 @@ class InfoFragment : Fragment() {
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         return ComposeView(requireContext()).apply {
             setContent {
                 AppTheme {
@@ -38,7 +38,6 @@ class InfoFragment : Fragment() {
 
     @Composable
     fun InfoScreen() {
-        val context = LocalContext.current
         var isGestureDetectionActive by remember { mutableStateOf(false) }
         val activity = (activity as MainActivity)
         LazyColumn(

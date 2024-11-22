@@ -102,7 +102,7 @@ class GestureListener(private val context: Context) : GestureDetector.SimpleOnGe
         velocityY: Float
     ): Boolean {
         // Fling event occurred. Notification of this one happens after an "up" event.
-        val intent = Intent("com.krishdev.ACTION_GATHER_ACCESSIBILITY_TAGS")
+//        val intent = Intent("com.krishdev.ACTION_GATHER_ACCESSIBILITY_TAGS")
         Log.i(TAG, "Fling" + e1?.let { getTouchType(it) })
         if (velocityY > 0) {
 //            context.sendBroadcast(intent)
