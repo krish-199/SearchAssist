@@ -106,7 +106,7 @@ class SimpleAccessibilityService : AccessibilityService(),
         // Register the receiver to listen for gesture actions
         val info = AccessibilityServiceInfo()
         info.eventTypes =
-            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or AccessibilityEvent.TYPE_VIEW_FOCUSED
+            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or AccessibilityEvent.TYPE_VIEW_FOCUSED or AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED or AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED
 
         info.feedbackType =
             AccessibilityServiceInfo.FEEDBACK_GENERIC // Feedback type (e.g., for screen readers)
@@ -190,6 +190,11 @@ class SimpleAccessibilityService : AccessibilityService(),
 //                     Log.d("SAS", "Keyboard is likely open (window state changed).")
 //                 }
 //                isKeyboardOpen = true
+            }
+            AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED, AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED -> {
+                val className = event.className?.toString()
+                Log.d("SAS", "A text field edited $className", )
+                overlayView.enableOverlayOnWindowChange(false)
             }
 
 //            AccessibilityEvent.TYPE_VIEW_FOCUSED -> {
