@@ -182,7 +182,7 @@ class GestureDetectionOverlay(context: Context, private val windowManager: Windo
     fun enableOverlayOnWindowChange(enable: Boolean) {
         if (!enableOverlay) return
         if (enable) updateOverlays()
-        else updateOverlays(1)
+        else updateOverlays(0)
     }
 
     override fun enableOverlayListener(enableOverlay: Boolean) {
