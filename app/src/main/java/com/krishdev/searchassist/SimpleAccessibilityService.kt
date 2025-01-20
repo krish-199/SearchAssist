@@ -98,7 +98,7 @@ class SimpleAccessibilityService : AccessibilityService(),
 
     private var isKeyboardOpen = false
     private var searchNodes = mutableListOf<AccessibilityNodeInfo>()
-    private var debug = false
+    private var debug = BuildConfig.DEBUG
     private lateinit var overlayView: GestureDetectionOverlay
     private var isOverlayDisabled = false
 
@@ -193,8 +193,9 @@ class SimpleAccessibilityService : AccessibilityService(),
             }
             AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED, AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED -> {
                 val className = event.className?.toString()
-                Log.d("SAS", "A text field edited $className", )
+                Log.d("SAS", "A text field edited $className")
                 overlayView.enableOverlayOnWindowChange(false)
+                isOverlayDisabled = true
             }
 
 //            AccessibilityEvent.TYPE_VIEW_FOCUSED -> {
@@ -423,7 +424,7 @@ class SimpleAccessibilityService : AccessibilityService(),
     private fun performAction(node: AccessibilityNodeInfo) {
         if (node.performAction(AccessibilityNodeInfo.ACTION_CLICK) || node.performAction(
                 AccessibilityNodeInfo.ACTION_FOCUS
-            ) || node.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS)
+            ) || node.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS) || node.performAction(AccessibilityNodeInfo.ACTION_SELECT)
         ) {
             Log.d("SAS", "Click action performed")
             drawBoxOnNode(node, Color.GREEN)

@@ -1,5 +1,10 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
 
-    <style name="Theme.SearchAssist" parent="Theme.MaterialComponents.DayNight.NoActionBar" ></style>
+    <style name="Theme.SearchAssist" parent="Theme.MaterialComponents.DayNight.NoActionBar" />
+    <style name="Theme.YourAppName" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/cardview_dark_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/sa</item>
+        <item name="postSplashScreenTheme">@style/Theme.YourAppName</item>
+    </style>
 </resources>
