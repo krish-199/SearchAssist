@@ -11,7 +11,10 @@
 
 ## Screenshots
 
-![sa_shot_main_dark](phone_1_dark.png) ![sa_shot_config_dark](phone_2_dark.png) ![sa_shot_main](phone_2.png) ![sa_shot_config](phone_1.png)
+<span>
+<img src="assets/phone_1_dark.png" alt="Main Page" width="300">
+<img src="assets/phone_2_dark.png" alt="Config page" width="300">
+</span>
 
 ## Installation
 
@@ -103,5 +106,5 @@ SOFTWARE.
 
 ## Contact
 
-For questions or suggestions, feel free to reach out to [your.email@example.com](mailto\:your.email@example.com).
+For questions or suggestions, feel free to reach out to [krishb@drpriyanka.eu.org](mailto\:krishb@drpriyanka.eu.org).
 
