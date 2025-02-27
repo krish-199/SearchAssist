@@ -1,12 +1,13 @@
 package com.krishdev.searchassist
 
-import android.content.ActivityNotFoundException
+//import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.util.Log
 import android.view.GestureDetector
 import android.view.MotionEvent
+import androidx.annotation.RequiresApi
 
 class GestureListener(private val context: Context) : GestureDetector.SimpleOnGestureListener() {
 
@@ -108,26 +109,28 @@ class GestureListener(private val context: Context) : GestureDetector.SimpleOnGe
 //            context.sendBroadcast(intent)
 //            ServiceSharedInstance.sendAccessibilityData(true)
             Log.i(TAG, "Fling downward")
+            // pausing fling downward as it causing issue with navigation
+            return super.onFling(e1, e2, velocityX, velocityY)
                     // Create an intent to launch the desired application
-            val packageName = "ninja.sesame.app.edge" // Replace with the package name of the app you want to launch
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                val launchIntentSender = context.packageManager.getLaunchIntentSenderForPackage(packageName)
-                try {
-                    context.startIntentSender(launchIntentSender, null, 0, 0, 0)
-                } catch (e: ActivityNotFoundException) {
-                    Log.e(TAG, "Activity not found for package: $packageName")
-                }
-
-            } else {
-                val launchIntent = context.packageManager.getLaunchIntentForPackage(packageName)
-                if (launchIntent != null) {
-                    // Ensure the intent has the FLAG_ACTIVITY_NEW_TASK flag
-                    launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    context.startActivity(launchIntent)
-                } else {
-                    Log.e(TAG, "Launch intent not found for package: $packageName")
-                }
-            }
+//            val packageName = "ninja.sesame.app.edge" // Replace with the package name of the app you want to launch
+//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+//                val launchIntentSender = context.packageManager.getLaunchIntentSenderForPackage(packageName)
+//                try {
+//                    context.startIntentSender(launchIntentSender, null, 0, 0, 0)
+//                } catch (e: ActivityNotFoundException) {
+//                    Log.e(TAG, "Activity not found for package: $packageName")
+//                }
+//
+//            } else {
+//                val launchIntent = context.packageManager.getLaunchIntentForPackage(packageName)
+//                if (launchIntent != null) {
+//                    // Ensure the intent has the FLAG_ACTIVITY_NEW_TASK flag
+//                    launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+//                    context.startActivity(launchIntent)
+//                } else {
+//                    Log.e(TAG, "Launch intent not found for package: $packageName")
+//                }
+//            }
         } else {
             Log.i(TAG, "fling upward")
             ServiceSharedInstance.sendAccessibilityData(true)
@@ -154,10 +157,20 @@ class GestureListener(private val context: Context) : GestureDetector.SimpleOnGe
         return super.onDoubleTap(e)
     }
 
+    @RequiresApi(Build.VERSION_CODES.P)
     override fun onDoubleTapEvent(e: MotionEvent): Boolean {
         // Since double-tap is actually several events which are considered one aggregate
         // gesture, there's a separate callback for an individual event within the doubletap
         // occurring. This occurs for down, up, and move.
+        val accessibilityService = SimpleAccessibilityService.getInstance()
+
+        // Only attempt to lock if the service is running
+        if (accessibilityService != null) {
+            accessibilityService.lockDevice()
+            Log.i(TAG, "Event within double tap" + getTouchType(e))
+        } else {
+            Log.e(TAG, "Accessibility service not running")
+        }
         Log.i(TAG, "Event within double tap" + getTouchType(e))
         return super.onDoubleTapEvent(e)
     }
@@ -165,7 +178,16 @@ class GestureListener(private val context: Context) : GestureDetector.SimpleOnGe
     override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
         // A confirmed single-tap event has occurred. Only called when the detector has
         // determined that the first tap stands alone, and is not part of a double tap.
-        Log.i(TAG, "Single tap confirmed" + getTouchType(e))
+        // Open notification panel on single tap
+        try {
+            val statusBarService = context.getSystemService("statusbar")
+            val statusBarManager = Class.forName("android.app.StatusBarManager")
+            val method = statusBarManager.getMethod("expandNotificationsPanel")
+            method.invoke(statusBarService)
+        } catch (e: Exception) {
+            context.sendBroadcast(Intent("android.intent.action.EXPAND_STATUS_BAR"))
+        }
+
         return super.onSingleTapConfirmed(e)
     }
     // END_INCLUDE(init_gestureListener)

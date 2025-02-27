@@ -26,6 +26,7 @@ import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 
 class BoundingBoxView(context: Context, private val col: Int = Color.RED) : View(context) {
     private val paint = Paint().apply {
@@ -96,6 +97,15 @@ class SimpleAccessibilityService : AccessibilityService(),
         gatherAccessibilityData()
     }
 
+    companion object {
+        // Static instance to access from other components
+        private var instance: SimpleAccessibilityService? = null
+
+        fun getInstance(): SimpleAccessibilityService? {
+            return instance
+        }
+    }
+
     private var isKeyboardOpen = false
     private var searchNodes = mutableListOf<AccessibilityNodeInfo>()
     private var debug = BuildConfig.DEBUG
@@ -124,12 +134,24 @@ class SimpleAccessibilityService : AccessibilityService(),
         val sharedPreferences = getSharedPreferences("GestureLoggerPrefs", Context.MODE_PRIVATE)
         debug = sharedPreferences.getBoolean("debug", false)
 
+        val isFirst = sharedPreferences.getBoolean("isFirst", true)
+
+        if (!isFirst) {
+            overlayView.enableOverlayOnWindowChange(true)
+        }
+
         val windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         // code is working as excepted do a cleanup of code to properly manage
         overlayView = GestureDetectionOverlay(this, windowManager)
         overlayView.onCreate()
 
         super.onServiceConnected()
+        instance = this
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        instance = null
     }
 
 
@@ -559,6 +581,16 @@ class SimpleAccessibilityService : AccessibilityService(),
 
         // Dispatch the gesture with a callback
         dispatchGesture(gestureDescription, null, null)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.P)
+    fun lockDevice() {
+        try {
+            performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN)
+            Log.i("SAS", "Device locked successfully")
+        } catch (e: Exception) {
+            Log.e("SAS", "Failed to lock device", e)
+        }
     }
 
 
