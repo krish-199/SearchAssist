@@ -17,6 +17,7 @@ object ServiceSharedInstance {
     // Interface for listeners to implement
     interface EnableOverlayListener {
         fun enableOverlayListener(enableOverlay: Boolean)
+        fun enableOverlayOnWindowChange(enable: Boolean)
     }
     // Interface for listeners to implement
     interface OnWindowChangeListener {
@@ -64,6 +65,12 @@ object ServiceSharedInstance {
             listener.enableOverlayListener(enableOverlay) // Invoke the listener method
         }
     }
+    // Method to notify all registered listeners of the event
+    private fun notifyOverlayWindowChange(enableOverlay: Boolean) {
+        for (listener in overlayListeners) {
+            listener.enableOverlayOnWindowChange(enableOverlay) // Invoke the listener method
+        }
+    }
     // Add more shared properties or methods as needed
     fun sendAccessibilityData(isGestureDetected: Boolean) {
         Log.d("SSI", "Sending accessibility data to listeners")
@@ -80,6 +87,12 @@ object ServiceSharedInstance {
     fun sendOverlayStatus(enableOverlay: Boolean) {
         Log.d("SSI", "Sending overlay data to Service")
         notifyOverlayChange(enableOverlay)
+        // Optionally notify listeners or handle any communication here
+    }
+    // Add more shared properties or methods as needed
+    fun sendOverlayWindowStatus(enableOverlay: Boolean) {
+        Log.d("SSI", "Sending overlay data to Service")
+        notifyOverlayWindowChange(enableOverlay)
         // Optionally notify listeners or handle any communication here
     }
 

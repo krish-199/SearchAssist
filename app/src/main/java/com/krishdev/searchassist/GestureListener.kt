@@ -82,7 +82,8 @@ class GestureListener(private val context: Context) : GestureDetector.SimpleOnGe
         // Touch has been long enough to indicate a long press.
         // Does not indicate motion is complete yet (no up event necessarily)
         Log.i(TAG, "Long Press" + getTouchType(e))
-        return super.onLongPress(e)
+        ServiceSharedInstance.sendOverlayWindowStatus(false)
+//        return super.onLongPress(e)
     }
 
     override fun onScroll(

@@ -179,7 +179,7 @@ class GestureDetectionOverlay(context: Context, private val windowManager: Windo
         ServiceSharedInstance.unregisterOverlayListener(this)
     }
 
-    fun enableOverlayOnWindowChange(enable: Boolean) {
+    override fun enableOverlayOnWindowChange(enable: Boolean) {
         if (!enableOverlay) return
         if (enable) updateOverlays()
         else updateOverlays(0)
