@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.krishdev.searchassist.ui.theme.AppTheme
+import androidx.core.content.edit
 
 class IntroductoryActivity : ComponentActivity() {
 
@@ -23,7 +24,7 @@ class IntroductoryActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        sharedPreferences = getSharedPreferences("AppPrefs", MODE_PRIVATE)
+        sharedPreferences = getSharedPreferences("GestureLoggerPrefs", MODE_PRIVATE)
         val isFirstRun = sharedPreferences.getBoolean("isFirstRun", true)
 
         if (!isFirstRun) {
@@ -34,7 +35,7 @@ class IntroductoryActivity : ComponentActivity() {
         setContent {
             AppTheme {
                 IntroScreen {
-                    sharedPreferences.edit().putBoolean("isFirstRun", false).apply()
+                    sharedPreferences.edit { putBoolean("isFirstRun", false) }
                     navigateToMainActivity()
                 }
             }
