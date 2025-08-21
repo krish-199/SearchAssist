@@ -3,7 +3,6 @@ package com.krishdev.searchassist
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
@@ -14,8 +13,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.krishdev.searchassist.ui.theme.AppTheme
 import androidx.core.content.edit
+import com.krishdev.searchassist.ui.theme.AppTheme
 
 class IntroductoryActivity : ComponentActivity() {
 
