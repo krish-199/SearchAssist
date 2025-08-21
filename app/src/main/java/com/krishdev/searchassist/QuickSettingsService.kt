@@ -16,10 +16,12 @@ class QuickSettingsService : TileService() {
 
     override fun onClick() {
         super.onClick()
-        if (MainActivity.isGestureDetectionActive.value) {
-            MainActivity().stopAccessibilityService()
+        if (MainActivity.isGestureDetectionActive) {
+            ServiceSharedInstance.sendOverlayStatus(false)
+            MainActivity.isGestureDetectionActive = false
         } else {
-            MainActivity().startAccessibilityService() // Default values
+            ServiceSharedInstance.sendOverlayStatus(true)
+            MainActivity.isGestureDetectionActive = true
         }
         updateTile()
     }
@@ -27,7 +29,7 @@ class QuickSettingsService : TileService() {
     private fun updateTile() {
         qsTile?.let {
             it.state =
-                if (MainActivity.isGestureDetectionActive.value) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
+                if (MainActivity.isGestureDetectionActive) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
             it.updateTile()
         }
     }

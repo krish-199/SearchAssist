@@ -53,12 +53,10 @@ class BootReceiver : BroadcastReceiver() {
         colonSplitter.setString(enabledServices)
         
         val serviceName = "${context.packageName}/${SimpleAccessibilityService::class.java.name}"
-        val gestureServiceName = "${context.packageName}/${GestureDetectionService::class.java.name}"
         
         while (colonSplitter.hasNext()) {
             val componentName = colonSplitter.next()
-            if (componentName.equals(serviceName, ignoreCase = true) || 
-                componentName.equals(gestureServiceName, ignoreCase = true)) {
+            if (componentName.equals(serviceName, ignoreCase = true)) {
                 return true
             }
         }

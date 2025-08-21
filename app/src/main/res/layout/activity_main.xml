@@ -1,5 +1,58 @@
-
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/fragment_container"
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent" />
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/background_primary">
+
+    <!-- App Bar / Header -->
+    <LinearLayout
+        android:id="@+id/app_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/background_primary"
+        android:elevation="1dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/current_section"
+            style="@style/AppText.Caption"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Main"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+    <!-- Divider -->
+
+    <!-- Fragment Container -->
+    <FrameLayout
+        android:id="@+id/fragment_container"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!-- Status Bar (Optional) -->
+    <LinearLayout
+        android:id="@+id/status_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:background="@color/background_secondary"
+        android:gravity="center"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/status_message"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Ready"
+            style="@style/AppText.Caption" />
+
+    </LinearLayout>
+
+</LinearLayout>

@@ -26,7 +26,7 @@ import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
-import androidx.annotation.RequiresApi
+import android.annotation.TargetApi
 
 class BoundingBoxView(context: Context, private val col: Int = Color.RED) : View(context) {
     private val paint = Paint().apply {
@@ -131,7 +131,7 @@ class SimpleAccessibilityService : AccessibilityService(),
         ServiceSharedInstance.registerListener(this)
         Log.d("SimpleAccessibilityService", "Service connected")
 
-        val sharedPreferences = getSharedPreferences("GestureLoggerPrefs", Context.MODE_PRIVATE)
+        val sharedPreferences = getSharedPreferences("GestureLoggerPrefs", MODE_PRIVATE)
         debug = sharedPreferences.getBoolean("debug", false)
 
         val isFirst = sharedPreferences.getBoolean("isFirst", true)
@@ -157,7 +157,7 @@ class SimpleAccessibilityService : AccessibilityService(),
 
     private fun checkImeVisibility(): Boolean {
         val inputMethodManager =
-            getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
         val isImeVisible = inputMethodManager.isAcceptingText
         if (isImeVisible) isKeyboardOpen = true
         Log.d("IME_VISIBILITY", "IME is ${if (isImeVisible) "visible" else "not visible"}")
@@ -583,7 +583,7 @@ class SimpleAccessibilityService : AccessibilityService(),
         dispatchGesture(gestureDescription, null, null)
     }
 
-    @RequiresApi(Build.VERSION_CODES.P)
+    @TargetApi(Build.VERSION_CODES.P)
     fun lockDevice() {
         try {
             performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN)
@@ -602,7 +602,7 @@ class SimpleAccessibilityService : AccessibilityService(),
             !isNavigationBarVisible
         } else {
             // API < 30: Use legacy flags
-            val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+            val windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
             val displayMetrics = DisplayMetrics()
             windowManager.defaultDisplay.getMetrics(displayMetrics)
         

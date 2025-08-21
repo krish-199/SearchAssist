@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-//    alias(libs.plugins.compose.compiler)
 }
 
 android {
@@ -53,12 +52,8 @@ android {
     }
     buildFeatures {
         viewBinding = true
-        compose = false
         buildConfig = true
     }
-//    composeOptions {
-//        kotlinCompilerExtensionVersion = "1.5.8" // Updated for Kotlin 2.0
-//    }
     packaging {
         resources {
             excludes += setOf(
@@ -78,24 +73,7 @@ android {
     }
 }
 
-//composeCompiler {
-//
-//}
-
 dependencies {
-    implementation(libs.androidx.core.splashscreen)
-    implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.material3)
-    implementation(libs.androidx.material)
-    implementation(libs.androidx.cardview)
-    implementation(libs.androidx.fragment.ktx)
-    implementation(libs.androidx.ui)            // Jetpack Compose UI
-    implementation(libs.androidx.ui.tooling.preview)
-    implementation(libs.androidx.runner)
-    debugImplementation(libs.androidx.ui.tooling)       // Tooling
-    debugImplementation(libs.androidx.ui.test.manifest) // Test Manifest
-    implementation(libs.androidx.core.ktx)
     testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.androidx.test.ext.junit)
 }

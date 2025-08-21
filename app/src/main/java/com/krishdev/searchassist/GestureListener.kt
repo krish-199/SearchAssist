@@ -1,13 +1,12 @@
 package com.krishdev.searchassist
 
-//import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.util.Log
 import android.view.GestureDetector
 import android.view.MotionEvent
-import androidx.annotation.RequiresApi
+import android.annotation.TargetApi
 
 class GestureListener(private val context: Context) : GestureDetector.SimpleOnGestureListener() {
 
@@ -104,34 +103,11 @@ class GestureListener(private val context: Context) : GestureDetector.SimpleOnGe
         velocityY: Float
     ): Boolean {
         // Fling event occurred. Notification of this one happens after an "up" event.
-//        val intent = Intent("com.krishdev.ACTION_GATHER_ACCESSIBILITY_TAGS")
         Log.i(TAG, "Fling" + e1?.let { getTouchType(it) })
         if (velocityY > 0) {
-//            context.sendBroadcast(intent)
-//            ServiceSharedInstance.sendAccessibilityData(true)
             Log.i(TAG, "Fling downward")
-            // pausing fling downward as it causing issue with navigation
+            // Downward fling currently disabled as it interferes with navigation
             return super.onFling(e1, e2, velocityX, velocityY)
-                    // Create an intent to launch the desired application
-//            val packageName = "ninja.sesame.app.edge" // Replace with the package name of the app you want to launch
-//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-//                val launchIntentSender = context.packageManager.getLaunchIntentSenderForPackage(packageName)
-//                try {
-//                    context.startIntentSender(launchIntentSender, null, 0, 0, 0)
-//                } catch (e: ActivityNotFoundException) {
-//                    Log.e(TAG, "Activity not found for package: $packageName")
-//                }
-//
-//            } else {
-//                val launchIntent = context.packageManager.getLaunchIntentForPackage(packageName)
-//                if (launchIntent != null) {
-//                    // Ensure the intent has the FLAG_ACTIVITY_NEW_TASK flag
-//                    launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-//                    context.startActivity(launchIntent)
-//                } else {
-//                    Log.e(TAG, "Launch intent not found for package: $packageName")
-//                }
-//            }
         } else {
             Log.i(TAG, "fling upward")
             ServiceSharedInstance.sendAccessibilityData(true)
@@ -158,7 +134,7 @@ class GestureListener(private val context: Context) : GestureDetector.SimpleOnGe
         return super.onDoubleTap(e)
     }
 
-    @RequiresApi(Build.VERSION_CODES.P)
+    @TargetApi(Build.VERSION_CODES.P)
     override fun onDoubleTapEvent(e: MotionEvent): Boolean {
         // Since double-tap is actually several events which are considered one aggregate
         // gesture, there's a separate callback for an individual event within the doubletap
