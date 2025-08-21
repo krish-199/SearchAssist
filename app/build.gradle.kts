@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.compose.compiler)
+//    alias(libs.plugins.compose.compiler)
 }
 
 android {
@@ -53,12 +53,12 @@ android {
     }
     buildFeatures {
         viewBinding = true
-        compose = true
+        compose = false
         buildConfig = true
     }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.8" // Updated for Kotlin 2.0
-    }
+//    composeOptions {
+//        kotlinCompilerExtensionVersion = "1.5.8" // Updated for Kotlin 2.0
+//    }
     packaging {
         resources {
             excludes += setOf(
@@ -78,9 +78,9 @@ android {
     }
 }
 
-composeCompiler {
-
-}
+//composeCompiler {
+//
+//}
 
 dependencies {
     implementation(libs.androidx.core.splashscreen)
