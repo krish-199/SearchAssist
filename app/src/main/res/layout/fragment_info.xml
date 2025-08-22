@@ -50,7 +50,7 @@
             android:id="@+id/features_list"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="• Swipe UP on gesture area: Auto-select search field and enable one-handed mode (Android 12+)\n\n• Swipe DOWN on gesture area: Launch Sesame Search (if installed)"
+            android:text="• Swipe UP on gesture area: Auto-select search field and enable one-handed mode (Android 12+)\n\n• Single Tap on gesture area: Open Notification panel\n\n• Double Tap on gesture area: Lock Device"
             style="@style/AppText.Body2"
             android:layout_marginBottom="20dp" />
 
