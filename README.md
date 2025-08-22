@@ -104,7 +104,3 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Contact
-
-For questions or suggestions, feel free to reach out to [krishb@drpriyanka.eu.org](mailto\:krishb@drpriyanka.eu.org).
-
