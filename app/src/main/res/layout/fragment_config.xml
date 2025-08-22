@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_primary">
+
+    <!-- Main content -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Page Header -->
+        <TextView
+            android:id="@+id/page_header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Configuration"
+            style="@style/AppText.Heading1"
+            android:layout_marginBottom="6dp" />
+
+        <!-- Subtitle -->
+        <TextView
+            android:id="@+id/page_subtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Configure your gesture detection areas and settings"
+            style="@style/AppText.Caption"
+            android:layout_marginBottom="20dp" />
+
+        <!-- Gesture Detection Area Settings -->
+        <TextView
+            android:id="@+id/gesture_area_header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Gesture Detection Area"
+            style="@style/AppText.Heading3"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Width Setting -->
+        <TextView
+            android:id="@+id/width_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Width"
+            style="@style/AppText.Label"
+            android:layout_marginBottom="6dp" />
+
+        <SeekBar
+            android:id="@+id/slider_width"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:max="40"
+            android:progress="20" />
+
+        <TextView
+            android:id="@+id/width_value"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="20%"
+            style="@style/AppText.Caption"
+            android:layout_marginBottom="12dp"
+            android:gravity="center" />
+
+        <!-- Height Setting -->
+        <TextView
+            android:id="@+id/height_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Height"
+            style="@style/AppText.Label"
+            android:layout_marginBottom="6dp" />
+
+        <SeekBar
+            android:id="@+id/slider_height"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:max="100"
+            android:progress="60" />
+
+        <TextView
+            android:id="@+id/height_value"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="60%"
+            style="@style/AppText.Caption"
+            android:layout_marginBottom="12dp"
+            android:gravity="center" />
+
+        <!-- Height Offset Setting -->
+        <TextView
+            android:id="@+id/height_offset_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Vertical Position"
+            style="@style/AppText.Label"
+            android:layout_marginBottom="6dp" />
+
+        <SeekBar
+            android:id="@+id/slider_height_offset"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:max="100"
+            android:progress="30" />
+
+        <TextView
+            android:id="@+id/height_offset_value"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="30% from top"
+            style="@style/AppText.Caption"
+            android:layout_marginBottom="12dp"
+            android:gravity="center" />
+
+        <!-- Live Preview Note -->
+        <TextView
+            android:id="@+id/live_preview_note"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Live Preview: Gesture areas are shown as highlighted bars on the screen edges"
+            style="@style/AppText.Caption"
+            android:layout_marginBottom="20dp"
+            android:textStyle="italic"
+            android:gravity="center" />
+
+        <!-- Advanced Settings -->
+        <TextView
+            android:id="@+id/advanced_header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Advanced"
+            style="@style/AppText.Heading3"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Debug Mode Toggle -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="20dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Debug Mode"
+                style="@style/AppText.Body1" />
+
+            <Switch
+                android:id="@+id/toggle_debug_mode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+        </LinearLayout>
+
+
+
+        <!-- Action Buttons -->
+        <Button
+            android:id="@+id/btn_save_config"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Save Configuration"
+            style="@style/AppButton"
+            android:layout_marginBottom="12dp" />
+
+        <Button
+            android:id="@+id/btn_back_to_main"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Back to Main"
+            style="@style/AppButton.Secondary"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Status Output -->
+        <TextView
+            android:id="@+id/config_output"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            style="@style/AppText.Caption"
+            android:layout_marginTop="16dp"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+    </ScrollView>
+
+    <!-- Screen overlay for live preview -->
+    <com.krishdev.searchassist.ScreenOverlayPreview
+        android:id="@+id/screen_overlay_preview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+</FrameLayout>

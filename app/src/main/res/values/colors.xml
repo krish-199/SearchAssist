@@ -1,2 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources></resources>
+<resources>
+    <!-- Dark Minimalist Color Scheme -->
+    <color name="background_primary">#121212</color>           <!-- Dark background -->
+    <color name="background_secondary">#1E1E1E</color>         <!-- Slightly lighter dark background -->
+    <color name="text_primary">#FFFFFF</color>                 <!-- White text for readability -->
+    <color name="text_secondary">#B3FFFFFF</color>             <!-- Secondary light gray text -->
+    <color name="text_muted">#80FFFFFF</color>                 <!-- Muted light text -->
+    <color name="accent_primary">#D4AF37</color>               <!-- Dull yellow accent -->
+    <color name="accent_secondary">#28A745</color>             <!-- Success green -->
+    <color name="accent_warning">#FFC107</color>               <!-- Warning amber -->
+    <color name="accent_danger">#DC3545</color>                <!-- Error red -->
+    <color name="border_light">#333333</color>                 <!-- Light borders for dark theme -->
+    <color name="border_medium">#444444</color>                <!-- Medium borders for dark theme -->
+    <color name="border_dark">#1F1F1F</color>                  <!-- Dark borders -->
+    
+    <!-- Legacy color names for compatibility -->
+    <color name="terminal_background">@color/background_primary</color>
+    <color name="terminal_text_primary">@color/text_primary</color>
+    <color name="terminal_text_secondary">@color/text_secondary</color>
+    <color name="terminal_accent">@color/accent_primary</color>
+    <color name="terminal_dim">@color/text_muted</color>
+    <color name="terminal_cursor">@color/accent_secondary</color>
+    <color name="terminal_border">@color/border_medium</color>
+    <color name="terminal_overlay">#007BFF1A</color>           <!-- Light blue overlay -->
+</resources>

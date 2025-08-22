@@ -3,21 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="com.krishdev.searchassist">
 
-    <queries>
-
-        <!-- Specific app by package name -->
-        <package android:name="ninja.sesame.app.edge" />
-
-        <!-- Allow queries for apps with launcher activity -->
-<!--        <intent>-->
-<!--            <action android:name="*"/>-->
-<!--        </intent>-->
-        <intent>
-            <action android:name="android.intent.action.MAIN" />
-
-            <category android:name="android.intent.category.LAUNCHER" />
-        </intent>
-    </queries>
+    
 
     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -35,12 +21,7 @@
             android:name=".IntroductoryActivity"
             android:exported="false"
             android:launchMode="singleTask"
-            android:theme="@style/Theme.SearchAssist">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-            </intent-filter>
-        </activity>
+            android:theme="@style/Theme.SearchAssist" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

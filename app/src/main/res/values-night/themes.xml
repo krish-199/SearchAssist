@@ -1,8 +1,27 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.SearchAssist" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your dark theme here. -->
-        <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
+    <!-- Text-Centric Dark Theme -->
+    <style name="Base.Theme.SearchAssist" parent="android:Theme.Material.NoActionBar">
+        <!-- Dark mode colors -->
+        <item name="android:windowBackground">#121212</item>
+        <item name="android:colorBackground">#121212</item>
+        <item name="android:textColorPrimary">#FFFFFF</item>
+        <item name="android:textColorSecondary">#B3FFFFFF</item>
+        <item name="android:colorPrimary">@color/accent_primary</item>
+        <item name="android:colorAccent">@color/accent_primary</item>
+        
+        <!-- Status bar and navigation bar -->
+        <item name="android:statusBarColor">#121212</item>
+        <item name="android:navigationBarColor">#121212</item>
+        <item name="android:windowLightStatusBar">false</item>
+        
+        <!-- Modern typography -->
+        <item name="android:fontFamily">sans-serif</item>
+        
+        <!-- Subtle animations -->
+        <item name="android:windowAnimationStyle">@android:style/Animation.Activity</item>
+        
+        <!-- Divider styling for dark mode -->
+        <item name="android:listDivider">@color/border_dark</item>
     </style>
     
     <style name="Theme.SearchAssist" parent="Base.Theme.SearchAssist" />

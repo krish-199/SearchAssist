@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_primary"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Page Header -->
+        <TextView
+            android:id="@+id/page_header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Search Assist"
+            style="@style/AppText.Heading1"
+            android:layout_marginBottom="6dp" />
+
+        <!-- Version -->
+        <TextView
+            android:id="@+id/version_info"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Version 1.1.1"
+            style="@style/AppText.Caption"
+            android:layout_marginBottom="20dp" />
+
+        <!-- App Description -->
+        <TextView
+            android:id="@+id/app_description"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Search Assist aids modern app designs by automatically selecting search fields in the foreground app.\n\n&quot;Technology should adjust to us rather than requiring us to adjust to it.&quot;\n\nWith modern designs increasingly focusing user experience around search, Search Assist helps by providing gesture-based controls for quick access to search functionality."
+            style="@style/AppText.Body1"
+            android:layout_marginBottom="20dp" />
+
+        <!-- Features Section -->
+        <TextView
+            android:id="@+id/features_header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Features"
+            style="@style/AppText.Heading3"
+            android:layout_marginBottom="12dp" />
+
+        <TextView
+            android:id="@+id/features_list"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="• Swipe UP on gesture area: Auto-select search field and enable one-handed mode (Android 12+)\n\n• Single Tap on gesture area: Open Notification panel\n\n• Double Tap on gesture area: Lock Device"
+            style="@style/AppText.Body2"
+            android:layout_marginBottom="20dp" />
+
+        <!-- Status Section -->
+        <TextView
+            android:id="@+id/status_header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Status"
+            style="@style/AppText.Heading3"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Service Status -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="12dp"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Accessibility Service:"
+                style="@style/AppText.Label" />
+
+            <TextView
+                android:id="@+id/service_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Inactive"
+                style="@style/AppText.Value" />
+
+        </LinearLayout>
+
+        <!-- Gesture Detection Status -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="20dp"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Gesture Detection:"
+                style="@style/AppText.Label" />
+
+            <TextView
+                android:id="@+id/gesture_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Disabled"
+                style="@style/AppText.Value" />
+
+        </LinearLayout>
+
+        <!-- Actions Section -->
+        <TextView
+            android:id="@+id/actions_header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Actions"
+            style="@style/AppText.Heading3"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Action Buttons -->
+        <Button
+            android:id="@+id/btn_toggle_detection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Start Gesture Detection"
+            style="@style/AppButton"
+            android:layout_marginBottom="12dp" />
+
+        <Button
+            android:id="@+id/btn_configure_area"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Configure Detection Area"
+            style="@style/AppButton.Secondary"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Current Configuration Preview -->
+        <TextView
+            android:id="@+id/config_header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Current Configuration"
+            style="@style/AppText.Heading3"
+            android:layout_marginBottom="12dp" />
+
+        <TextView
+            android:id="@+id/current_configuration"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Gesture areas are positioned on the left and right edges of your screen for easy access."
+            style="@style/AppText.Body2"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Status Output -->
+        <TextView
+            android:id="@+id/status_output"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            style="@style/AppText.Caption"
+            android:layout_marginTop="16dp"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+</ScrollView>

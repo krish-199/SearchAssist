@@ -7,7 +7,8 @@
     android:notificationTimeout="10"
     android:canRetrieveWindowContent="true"
     android:canPerformGestures="true"
-    android:canRequestEnhancedWebAccessibility="true">
+    android:canRequestEnhancedWebAccessibility="true"
+    android:isAccessibilityTool="true">
 
     <meta-data
         android:name="android.accessibilityservice"

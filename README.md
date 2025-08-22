@@ -12,8 +12,8 @@
 ## Screenshots
 
 <span>
-<img src="assets/phone_1_dark.png" alt="Main Page" width="300">
-<img src="assets/phone_2_dark.png" alt="Config page" width="300">
+<img src="assets/phone_new_1.png" alt="Main Page" width="300">
+<img src="assets/phone_new_2.png" alt="Config page" width="300">
 </span>
 
 ## Installation
@@ -103,8 +103,4 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
-
-## Contact
-
-For questions or suggestions, feel free to reach out to [krishb@drpriyanka.eu.org](mailto\:krishb@drpriyanka.eu.org).
 

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_primary"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="20dp"
+        android:gravity="center">
+
+        <!-- App Icon or Space -->
+        <View
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_marginBottom="20dp" />
+
+        <!-- Welcome Header -->
+        <TextView
+            android:id="@+id/welcome_header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Welcome to Search Assist"
+            style="@style/AppText.Heading1"
+            android:layout_marginBottom="6dp"
+            android:gravity="center" />
+
+        <!-- Version -->
+        <TextView
+            android:id="@+id/version_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Version 1.1.1"
+            style="@style/AppText.Caption"
+            android:layout_marginBottom="20dp"
+            android:gravity="center" />
+
+        <!-- Welcome Message -->
+        <TextView
+            android:id="@+id/welcome_message"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Search Assist helps you quickly access search functionality in any app by providing gesture-based controls for better user experience."
+            style="@style/AppText.Body1"
+            android:layout_marginBottom="16dp"
+            android:gravity="center" />
+
+        <!-- Setup Steps -->
+        <TextView
+            android:id="@+id/setup_steps"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Before we get started, we'll need to:\n\n• Enable accessibility permissions\n• Configure gesture detection areas\n• Set up your preferences"
+            style="@style/AppText.Body2"
+            android:layout_marginBottom="20dp"
+            android:gravity="center" />
+
+        <!-- Loading Message -->
+        <TextView
+            android:id="@+id/loading_message"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Initializing..."
+            style="@style/AppText.Caption"
+            android:layout_marginBottom="20dp"
+            android:visibility="visible" />
+
+        <!-- Continue Button -->
+        <Button
+            android:id="@+id/btn_continue_setup"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Continue Setup"
+            style="@style/AppButton"
+            android:layout_marginTop="24dp"
+            android:paddingHorizontal="32dp"
+            android:visibility="invisible" />
+
+        <!-- Footer Text -->
+        <TextView
+            android:id="@+id/footer_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="This app requires accessibility permissions to function properly."
+            style="@style/AppText.Caption"
+            android:layout_marginTop="24dp"
+            android:gravity="center" />
+
+    </LinearLayout>
+
+</ScrollView>

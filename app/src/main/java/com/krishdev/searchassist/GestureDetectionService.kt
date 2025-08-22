@@ -18,8 +18,6 @@ import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
-import androidx.core.app.NotificationCompat
-
 
 // convert it into view class, and add it to the window manager
 
@@ -195,7 +193,7 @@ class GestureDetectionService : AccessibilityService(),
                     WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT // Make sure the overlay is translucent if needed
         ).apply {
-            gravity = Gravity.START or Gravity.BOTTOM // Move to the left edge of the screen
+            gravity = Gravity.START or Gravity.TOP // Move to the left edge of the screen
             y = heightOffset
         }
 
@@ -209,7 +207,7 @@ class GestureDetectionService : AccessibilityService(),
                     WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT // Make sure the overlay is translucent if needed
         ).apply {
-            gravity = Gravity.END or Gravity.BOTTOM // Move to the right edge of the screen
+            gravity = Gravity.END or Gravity.TOP // Move to the right edge of the screen
             y = heightOffset
         }
 
@@ -235,7 +233,7 @@ class GestureDetectionService : AccessibilityService(),
                     WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT // Make sure the overlay is translucent if needed
         ).apply {
-            gravity = Gravity.START or Gravity.BOTTOM // Move to the left edge of the screen
+            gravity = Gravity.START or Gravity.TOP // Move to the left edge of the screen
             y = heightOffset
         }
 
@@ -249,7 +247,7 @@ class GestureDetectionService : AccessibilityService(),
                     WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT // Make sure the overlay is translucent if needed
         ).apply {
-            gravity = Gravity.END or Gravity.BOTTOM // Move to the right edge of the screen
+            gravity = Gravity.END or Gravity.TOP // Move to the right edge of the screen
             y = heightOffset
         }
         if (::leftEdgeView.isInitialized && leftEdgeView.isAttachedToWindow) windowManager.updateViewLayout(
@@ -265,11 +263,11 @@ class GestureDetectionService : AccessibilityService(),
     }
 
     private fun createNotification(): Notification {
-        return NotificationCompat.Builder(this, CHANNEL_ID)
+        return Notification.Builder(this, CHANNEL_ID)
             .setContentTitle("Gesture Detection Running")
             .setContentText("Gesture detection is active, even in the background.")
             .setSmallIcon(android.R.drawable.ic_menu_compass)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setPriority(Notification.PRIORITY_LOW)
             .build()
     }
 

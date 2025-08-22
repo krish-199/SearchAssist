@@ -38,7 +38,9 @@ class GestureDetectionOverlay(context: Context, private val windowManager: Windo
                 WIDTH_KEY, HEIGHT_KEY, HEIGHT_OFFSET_KEY -> {
                     val heightPixelMultiplier =
                         0.01f * context.resources.displayMetrics.heightPixels
-                    width = sharedPreferences.getFloat("width", 0f).toInt()
+                    val widthPixelMultiplier =
+                        0.01f * context.resources.displayMetrics.widthPixels
+                    width = (sharedPreferences.getFloat("width", 0f) * widthPixelMultiplier).toInt()
                     height =
                         (sharedPreferences.getFloat("height", 0f) * heightPixelMultiplier).toInt()
                     heightOffset = (sharedPreferences.getFloat(
@@ -60,22 +62,21 @@ class GestureDetectionOverlay(context: Context, private val windowManager: Windo
         }
 
     fun onCreate() {
-        val gestureListener = GestureListener(context)
-        gestureDetector = GestureDetector(context, gestureListener)
-        Log.d("GDO", "OnCreate function is called")
-        // Start gesture detection logic (you will need to add the appropriate detection logic)
-        startGestureDetection()
         sharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val heightPixelMultiplier = 0.01f * context.resources.displayMetrics.heightPixels
-        width = sharedPreferences.getFloat(WIDTH_KEY, 20f).toInt()
+        val widthPixelMultiplier = 0.01f * context.resources.displayMetrics.widthPixels
+        width = (sharedPreferences.getFloat(WIDTH_KEY, 20f) * widthPixelMultiplier).toInt()
         height = (sharedPreferences.getFloat(HEIGHT_KEY, 40f) * heightPixelMultiplier).toInt()
         heightOffset =
             (sharedPreferences.getFloat(HEIGHT_OFFSET_KEY, 0f) * heightPixelMultiplier).toInt()
         debug = sharedPreferences.getBoolean(DEBUG_KEY, false)
         sharedPreferences.registerOnSharedPreferenceChangeListener(preferenceChangeListener)
         ServiceSharedInstance.registerOverlayListener(this)
-        // get shrerad preferences values
-        //  if (!showOverlay) addOverlays()
+
+        val gestureListener = GestureListener(context)
+        gestureDetector = GestureDetector(context, gestureListener)
+        Log.d("GDO", "OnCreate function is called")
+        startGestureDetection()
     }
 
     private fun startGestureDetection() {
@@ -149,9 +150,9 @@ class GestureDetectionOverlay(context: Context, private val windowManager: Windo
             PixelFormat.TRANSLUCENT // Make sure the overlay is translucent if needed
         ).apply {
             if (isLeftView) {
-                gravity = Gravity.START or Gravity.BOTTOM // Move to the left edge of the screen
+                gravity = Gravity.START or Gravity.TOP // Move to the left edge of the screen
             } else {
-                gravity = Gravity.END or Gravity.BOTTOM // Move to the right edge of the screen
+                gravity = Gravity.END or Gravity.TOP // Move to the right edge of the screen
             }
             y = heightOffset
         }

@@ -6,147 +6,208 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
-import androidx.fragment.app.Fragment
-import com.krishdev.searchassist.ui.theme.AppTheme
+import android.widget.Button
+import android.widget.SeekBar
+import android.widget.Switch
+import android.widget.TextView
+import android.app.Fragment
 
 class ConfigFragment : Fragment() {
 
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        return ComposeView(requireContext()).apply {
-            setContent {
-                AppTheme {
-                    ConfigScreen()
-                }
-            }
-        }
-    }
-
+    private lateinit var widthSlider: SeekBar
+    private lateinit var heightSlider: SeekBar
+    private lateinit var heightOffsetSlider: SeekBar
+    private lateinit var widthValue: TextView
+    private lateinit var heightValue: TextView
+    private lateinit var heightOffsetValue: TextView
+    private lateinit var debugToggle: Switch
+    private lateinit var saveConfigButton: Button
+    private lateinit var backButton: Button
+    private lateinit var configOutput: TextView
+    private lateinit var screenOverlay: ScreenOverlayPreview
+    
     private val PREFS_NAME = "GestureLoggerPrefs"
     private val WIDTH_KEY = "width"
     private val HEIGHT_KEY = "height"
     private val HEIGHT_OFFSET_KEY = "heightOffset"
     private val DEBUG_KEY = "debug"
 
-    @Composable
-    fun ConfigScreen() {
-        val context = LocalContext.current
-        val sharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        return inflater.inflate(R.layout.fragment_config, container, false)
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        
+        initializeViews(view)
+        loadSavedSettings()
+        setupSliders()
+        setupToggle()
+        setupButtons()
+        
+        // Initialize the overlay with current settings
+        initializeOverlay()
+    }
+    
+    override fun onResume() {
+        super.onResume()
+        // Show the overlay when the fragment is visible
+        if (::screenOverlay.isInitialized) {
+            screenOverlay.setOverlayVisible(true)
+        }
+    }
+    
+    override fun onPause() {
+        super.onPause()
+        // Hide the overlay when leaving the fragment
+        if (::screenOverlay.isInitialized) {
+            screenOverlay.setOverlayVisible(false)
+        }
+    }
+    
+    private fun initializeViews(view: View) {
+        widthSlider = view.findViewById(R.id.slider_width)
+        heightSlider = view.findViewById(R.id.slider_height)
+        heightOffsetSlider = view.findViewById(R.id.slider_height_offset)
+        widthValue = view.findViewById(R.id.width_value)
+        heightValue = view.findViewById(R.id.height_value)
+        heightOffsetValue = view.findViewById(R.id.height_offset_value)
+        debugToggle = view.findViewById(R.id.toggle_debug_mode)
+        saveConfigButton = view.findViewById(R.id.btn_save_config)
+        backButton = view.findViewById(R.id.btn_back_to_main)
+        configOutput = view.findViewById(R.id.config_output)
+        screenOverlay = view.findViewById(R.id.screen_overlay_preview)
+    }
+    
+    private fun loadSavedSettings() {
+        val sharedPreferences = activity!!.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val savedWidth = sharedPreferences.getFloat(WIDTH_KEY, 20f)
         val savedHeight = sharedPreferences.getFloat(HEIGHT_KEY, 40f)
         val savedHeightOffset = sharedPreferences.getFloat(HEIGHT_OFFSET_KEY, 0f)
-        val editor = sharedPreferences.edit()
-        var width by remember { mutableFloatStateOf(savedWidth) }
-        var height by remember { mutableFloatStateOf(savedHeight) }
-        var heightOffset by remember { mutableFloatStateOf(savedHeightOffset) }
-        var isDebugMode by remember { mutableStateOf(sharedPreferences.getBoolean(DEBUG_KEY, false)) }
-
-        val heightPixelMultiplier =
-            0.01f * LocalContext.current.resources.displayMetrics.heightPixels
-
-        fun updatePrefs() {
-            editor.putFloat(WIDTH_KEY, width)
-            editor.putFloat(HEIGHT_KEY, height)
-            editor.putFloat(HEIGHT_OFFSET_KEY, heightOffset)
-            editor.apply()
-        }
-
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            Text("Width", color = MaterialTheme.colorScheme.onBackground)
-            Slider(
-                value = width,
-                onValueChange = { width = it },
-                valueRange = 0f..100f,
-                steps = 9,
-                modifier = Modifier.padding(16.dp),
-                onValueChangeFinished = { updatePrefs() }
-            )
-
-            Text("Height", color = MaterialTheme.colorScheme.onBackground)
-            Slider(
-                value = height,
-                onValueChange = { height = it },
-                valueRange = 10f..100f,
-                steps = 9,
-                modifier = Modifier.padding(16.dp),
-                onValueChangeFinished = { updatePrefs() },
-            )
-
-            Text("Height Offset", color = MaterialTheme.colorScheme.onBackground)
-            Slider(
-                value = heightOffset,
-                onValueChange = { heightOffset = it },
-                valueRange = 0f..50f,
-                steps = 9,
-                modifier = Modifier.padding(16.dp),
-                onValueChangeFinished = { updatePrefs() }
-            )
-
-            if (BuildConfig.DEBUG) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("Debug Mode", color = MaterialTheme.colorScheme.onBackground)
-                    Switch(
-                        checked = isDebugMode,
-                        onCheckedChange = {
-                            isDebugMode = it
-                            editor.putBoolean(DEBUG_KEY, it).apply()
-                            MainActivity.isDebugMode.value = it
-                        },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = MaterialTheme.colorScheme.surface,
-                            uncheckedThumbColor = MaterialTheme.colorScheme.onSurface
-                        )
-                    )
+        val savedDebugMode = sharedPreferences.getBoolean(DEBUG_KEY, false)
+        
+        widthSlider.progress = savedWidth.toInt()
+        heightSlider.progress = savedHeight.toInt()
+        heightOffsetSlider.progress = savedHeightOffset.toInt()
+        debugToggle.isChecked = savedDebugMode
+        
+        updateValueDisplays()
+    }
+    
+    private fun initializeOverlay() {
+        // Set up the overlay with current slider values
+        screenOverlay.updateGestureAreas(
+            widthSlider.progress.toFloat(),
+            heightSlider.progress.toFloat(),
+            heightOffsetSlider.progress.toFloat()
+        )
+        screenOverlay.setOverlayVisible(true)
+    }
+    
+    private fun setupSliders() {
+        // Width Slider (limited to 40% max)
+        widthSlider.max = 40
+        widthSlider.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    updateValueDisplays()
                 }
             }
-            Button(onClick = {
-                // navigate back to previous fragment
-                val activity = context as? MainActivity
-                activity?.onBackPressedDispatcher?.onBackPressed()
-            }) {
-                Text("Back to main screen")
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                saveSettings()
             }
+        })
+        
+        // Height Slider
+        heightSlider.max = 100
+        heightSlider.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    updateValueDisplays()
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                saveSettings()
+            }
+        })
+        
+        // Height Offset Slider
+        heightOffsetSlider.max = 100
+        heightOffsetSlider.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    updateValueDisplays()
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                saveSettings()
+            }
+        })
+    }
+    
+    private fun setupToggle() {
+        // Only show debug toggle in debug builds
+        if (BuildConfig.DEBUG) {
+            debugToggle.visibility = View.VISIBLE
+            debugToggle.setOnCheckedChangeListener { _, isChecked ->
+                saveSettings()
+                MainActivity.isDebugMode = isChecked
+                showConfigOutput("Debug mode ${if (isChecked) "enabled" else "disabled"}")
+            }
+        } else {
+            debugToggle.visibility = View.GONE
         }
-        (activity as MainActivity).EdgeGestureDetector(
-            width.toInt(),
-            height.toInt() * heightPixelMultiplier.toInt(),
-            heightOffset.toInt() * heightPixelMultiplier.toInt()
+    }
+    
+    private fun setupButtons() {
+        saveConfigButton.setOnClickListener {
+            saveSettings()
+            showConfigOutput("Configuration saved successfully")
+        }
+        
+        backButton.setOnClickListener {
+            val activity = activity as? MainActivity
+            activity?.onBackPressed()
+        }
+    }
+    
+    private fun saveSettings() {
+        val sharedPreferences = activity!!.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val editor = sharedPreferences.edit()
+        
+        editor.putFloat(WIDTH_KEY, widthSlider.progress.toFloat())
+        editor.putFloat(HEIGHT_KEY, heightSlider.progress.toFloat())
+        editor.putFloat(HEIGHT_OFFSET_KEY, heightOffsetSlider.progress.toFloat())
+        editor.putBoolean(DEBUG_KEY, debugToggle.isChecked)
+        editor.apply()
+    }
+    
+    private fun updateValueDisplays() {
+        widthValue.text = "${widthSlider.progress}%"
+        heightValue.text = "${heightSlider.progress}%"
+        heightOffsetValue.text = "${heightOffsetSlider.progress}% from top"
+        
+        // Update screen overlay preview
+        screenOverlay.updateGestureAreas(
+            widthSlider.progress.toFloat(),
+            heightSlider.progress.toFloat(),
+            heightOffsetSlider.progress.toFloat()
         )
     }
-
+    
+    private fun showConfigOutput(message: String) {
+        configOutput.visibility = View.VISIBLE
+        configOutput.text = message
+        
+        // Hide the output after 3 seconds
+        configOutput.postDelayed({
+            configOutput.visibility = View.GONE
+        }, 3000)
+    }
 }
