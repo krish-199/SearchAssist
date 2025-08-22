@@ -12,8 +12,8 @@
 ## Screenshots
 
 <span>
-<img src="assets/phone_1_dark.png" alt="Main Page" width="300">
-<img src="assets/phone_2_dark.png" alt="Config page" width="300">
+<img src="assets/phone_new_1.png" alt="Main Page" width="300">
+<img src="assets/phone_new_2.png" alt="Config page" width="300">
 </span>
 
 ## Installation
