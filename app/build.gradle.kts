@@ -10,9 +10,9 @@ android {
     defaultConfig {
         applicationId = "com.krishdev.searchassist"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 3
-        versionName = "1.1.1"
+        targetSdk = 36
+        versionCode = 6
+        versionName = "1.2.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
