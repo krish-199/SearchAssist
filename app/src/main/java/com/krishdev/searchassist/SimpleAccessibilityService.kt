@@ -268,27 +268,32 @@ class SimpleAccessibilityService : AccessibilityService(),
     // Method to gather accessibility data from the current screen
     private fun gatherAccessibilityData() {
         isKeyboardOpen = false
+        searchNodes.clear()
         var rootNode = rootInActiveWindow
         if (rootNode != null) {
-            if (extractTextFromNode(rootNode)) return
-            // else if (searchNodes.isNotEmpty()) {
-            //     // Sort the searchNodes based on the width of each node
-            //     searchNodes.sortBy { node ->
-            //         val bounds = Rect()
-            //         node.getBoundsInScreen(bounds)
-            //         bounds.height() // Calculate the width of the node
-            //     }
+            try {
+                if (extractTextFromNode(rootNode)) return
+                // else if (searchNodes.isNotEmpty()) {
+                //     // Sort the searchNodes based on the width of each node
+                //     searchNodes.sortBy { node ->
+                //         val bounds = Rect()
+                //         node.getBoundsInScreen(bounds)
+                //         bounds.height() // Calculate the width of the node
+                //     }
 
-            //     // Perform the desired action on the sorted nodes
-            //     for (node in searchNodes) {
-            //         drawBoxOnNode(node, Color.MAGENTA)
-            //     }
+                //     // Perform the desired action on the sorted nodes
+                //     for (node in searchNodes) {
+                //         drawBoxOnNode(node, Color.MAGENTA)
+                //     }
 
-            //     // Perform action on the first node in the sorted list
-            //     performAction(searchNodes[0])
-            // } 
-            else {
-                enableOneHandedMode()
+                //     // Perform action on the first node in the sorted list
+                //     performAction(searchNodes[0])
+                // }
+                else {
+                    enableOneHandedMode()
+                }
+            } finally {
+                rootNode.recycle()
             }
         } else {
             Log.d("SimpleAccessibilityService", "Root node is null using windowslist")
@@ -301,7 +306,11 @@ class SimpleAccessibilityService : AccessibilityService(),
                     )
                     rootNode = window.root
                     if (rootNode != null) {
-                        if (extractTextFromNode(rootNode)) return
+                        try {
+                            if (extractTextFromNode(rootNode)) return
+                        } finally {
+                            rootNode.recycle()
+                        }
                     } else {
                         Log.d(
                             "SimpleAccessibilityService",
@@ -472,7 +481,7 @@ class SimpleAccessibilityService : AccessibilityService(),
 //            Log.d("SAS", "keyboard check done: ==>$isKeyboardOpen");
             return true
         }
-        if (node.isClickable) searchNodes.add(node)
+        // if (node.isClickable) searchNodes.add(node)
         // only go to parent node if node is focusable if not then return false
         return false
 
@@ -516,7 +525,9 @@ class SimpleAccessibilityService : AccessibilityService(),
         for (i in 0 until node.childCount) {
             val childNode = node.getChild(i)
             if (childNode != null) {
-                if (extractTextFromNode(childNode)) {
+                val found = extractTextFromNode(childNode)
+                childNode.recycle()
+                if (found) {
                     return true
                 }
             }
