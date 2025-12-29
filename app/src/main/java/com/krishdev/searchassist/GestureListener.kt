@@ -7,6 +7,8 @@ import android.util.Log
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.annotation.TargetApi
+import android.accessibilityservice.AccessibilityService
+import kotlin.math.abs
 
 class GestureListener(private val context: Context) : GestureDetector.SimpleOnGestureListener() {
 
@@ -104,6 +106,20 @@ class GestureListener(private val context: Context) : GestureDetector.SimpleOnGe
     ): Boolean {
         // Fling event occurred. Notification of this one happens after an "up" event.
         Log.i(TAG, "Fling" + e1?.let { getTouchType(it) })
+
+        if (abs(velocityX) > abs(velocityY)) {
+            val screenWidth = context.resources.displayMetrics.widthPixels
+            val x = e1?.rawX ?: 0f
+            val isLeftEdge = x < screenWidth / 2
+            val isRightSwipe = velocityX > 0
+
+            if ((isLeftEdge && isRightSwipe) || (!isLeftEdge && !isRightSwipe)) {
+                Log.i(TAG, "Horizontal Swipe: Back Action")
+                SimpleAccessibilityService.getInstance()?.performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK)
+                return true
+            }
+        }
+
         if (velocityY > 0) {
             Log.i(TAG, "Fling downward")
             // Downward fling currently disabled as it interferes with navigation
