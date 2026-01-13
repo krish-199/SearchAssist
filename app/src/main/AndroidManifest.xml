@@ -42,9 +42,13 @@
             android:excludeFromRecents="true"
             android:theme="@android:style/Theme.NoDisplay">
             <intent-filter>
-                <action android:name="com.krishdev.searchassist.TRIGGER_SEARCH" />
+                <action android:name="android.intent.action.CREATE_SHORTCUT" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
+
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
         </activity>
 
         <!-- <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE" /> -->
