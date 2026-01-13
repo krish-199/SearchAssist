@@ -31,7 +31,23 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity> <!-- <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE" /> -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+        </activity>
+
+        <activity
+            android:name=".TriggerSearchActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter>
+                <action android:name="com.krishdev.searchassist.TRIGGER_SEARCH" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <!-- <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE" /> -->
         <service
             android:name=".SimpleAccessibilityService"
             android:enabled="true"
