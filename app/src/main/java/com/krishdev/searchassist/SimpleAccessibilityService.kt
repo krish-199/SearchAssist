@@ -266,7 +266,7 @@ class SimpleAccessibilityService : AccessibilityService(),
     }
 
     // Method to gather accessibility data from the current screen
-    private fun gatherAccessibilityData() {
+    fun gatherAccessibilityData() {
         isKeyboardOpen = false
         searchNodes.clear()
         var rootNode = rootInActiveWindow

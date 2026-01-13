@@ -7,4 +7,7 @@
         \n\nThe usage of this accessibility features will NEVER be used for something else.
         No data will be collected or sent across network</string>
 
+    <string name="search_shortcut_short_label">Search</string>
+    <string name="search_shortcut_long_label">Trigger Search</string>
+    <string name="search_shortcut_disabled_message">Search shortcut disabled</string>
 </resources>
