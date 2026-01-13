@@ -287,8 +287,8 @@ class SimpleAccessibilityService : AccessibilityService(),
         var rootNode = rootInActiveWindow
         if (rootNode != null) {
             try {
-                // Use optimized BFS traversal with priority scoring
-                if (extractTextFromNodeBFS(rootNode)) return
+                // Use optimized DFS (returns immediately on first match - faster)
+                if (extractTextFromNodeDFS(rootNode)) return
                 else {
                     enableOneHandedMode()
                 }
@@ -307,8 +307,8 @@ class SimpleAccessibilityService : AccessibilityService(),
                     rootNode = window.root
                     if (rootNode != null) {
                         try {
-                            // Use optimized BFS traversal
-                            if (extractTextFromNodeBFS(rootNode)) return
+                            // Use optimized DFS (immediate return on match)
+                            if (extractTextFromNodeDFS(rootNode)) return
                         } finally {
                             rootNode.recycle()
                         }
@@ -564,18 +564,23 @@ class SimpleAccessibilityService : AccessibilityService(),
     }
 
     /**
-     * BFS traversal to find search nodes with priority scoring.
-     * Returns the best candidate based on score.
+     * BFS traversal with EARLY EXIT for high-confidence matches.
+     * Only continues searching if no high-confidence match found.
      */
+    private val HIGH_CONFIDENCE_THRESHOLD = 70  // Score >= this exits immediately
+    private val MAX_CANDIDATES = 5  // Stop collecting after this many
+
     private fun findBestSearchNode(rootNode: AccessibilityNodeInfo, startTime: Long): AccessibilityNodeInfo? {
-        val candidates = mutableListOf<SearchCandidate>()
         val queue: ArrayDeque<AccessibilityNodeInfo> = ArrayDeque()
         queue.add(rootNode)
+        
+        var bestCandidate: AccessibilityNodeInfo? = null
+        var bestScore = 0
 
         while (queue.isNotEmpty()) {
             // Timeout protection
             if (System.currentTimeMillis() - startTime > traversalTimeoutMs) {
-                Log.w("SAS", "Search traversal timeout after ${traversalTimeoutMs}ms")
+                Log.w("SAS", "Search traversal timeout")
                 break
             }
 
@@ -587,9 +592,17 @@ class SimpleAccessibilityService : AccessibilityService(),
             // Skip excluded nodes like headers/titles
             if (!isExcludedNode(node)) {
                 val score = calculateSearchScore(node)
-                if (score > 0) {
-                    Log.d("SAS", "Found candidate with score $score: ${node.viewIdResourceName}")
-                    candidates.add(SearchCandidate(node, score))
+                
+                // HIGH CONFIDENCE: Exit immediately
+                if (score >= HIGH_CONFIDENCE_THRESHOLD) {
+                    Log.d("SAS", "High confidence match (score $score): ${node.viewIdResourceName}")
+                    return node
+                }
+                
+                // Track best candidate so far
+                if (score > bestScore) {
+                    bestScore = score
+                    bestCandidate = node
                 }
             }
 
@@ -599,8 +612,11 @@ class SimpleAccessibilityService : AccessibilityService(),
             }
         }
 
-        // Return the highest scoring candidate
-        return candidates.maxByOrNull { it.score }?.node
+        // Return best found candidate (if any)
+        if (bestCandidate != null) {
+            Log.d("SAS", "Best candidate (score $bestScore): ${bestCandidate.viewIdResourceName}")
+        }
+        return bestCandidate
     }
 
     /**
