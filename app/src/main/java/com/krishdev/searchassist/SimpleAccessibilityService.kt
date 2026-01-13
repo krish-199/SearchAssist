@@ -27,6 +27,7 @@ import android.view.accessibility.AccessibilityWindowInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import android.annotation.TargetApi
+import java.util.ArrayDeque
 
 class BoundingBoxView(context: Context, private val col: Int = Color.RED) : View(context) {
     private val paint = Paint().apply {
@@ -105,6 +106,18 @@ class SimpleAccessibilityService : AccessibilityService(),
             return instance
         }
     }
+
+    // Pre-compiled regex patterns for faster matching
+    private val searchPattern = Regex("search|query|suche|buscar|recherche|find", RegexOption.IGNORE_CASE)
+    private val headerPattern = Regex("header|title|toolbar_title|action_bar", RegexOption.IGNORE_CASE)
+
+    // Keyboard state caching
+    private var lastKeyboardCheck: Long = 0
+    private var cachedKeyboardState: Boolean = false
+    private val keyboardCacheTtlMs = 100L
+
+    // Search candidate with priority score
+    private data class SearchCandidate(val node: AccessibilityNodeInfo, val score: Int)
 
     private var isKeyboardOpen = false
     private var searchNodes = mutableListOf<AccessibilityNodeInfo>()
@@ -268,27 +281,14 @@ class SimpleAccessibilityService : AccessibilityService(),
     // Method to gather accessibility data from the current screen
     fun gatherAccessibilityData() {
         isKeyboardOpen = false
+        cachedKeyboardState = false  // Reset keyboard cache
+        lastKeyboardCheck = 0L
         searchNodes.clear()
         var rootNode = rootInActiveWindow
         if (rootNode != null) {
             try {
-                if (extractTextFromNode(rootNode)) return
-                // else if (searchNodes.isNotEmpty()) {
-                //     // Sort the searchNodes based on the width of each node
-                //     searchNodes.sortBy { node ->
-                //         val bounds = Rect()
-                //         node.getBoundsInScreen(bounds)
-                //         bounds.height() // Calculate the width of the node
-                //     }
-
-                //     // Perform the desired action on the sorted nodes
-                //     for (node in searchNodes) {
-                //         drawBoxOnNode(node, Color.MAGENTA)
-                //     }
-
-                //     // Perform action on the first node in the sorted list
-                //     performAction(searchNodes[0])
-                // }
+                // Use optimized BFS traversal with priority scoring
+                if (extractTextFromNodeBFS(rootNode)) return
                 else {
                     enableOneHandedMode()
                 }
@@ -307,7 +307,8 @@ class SimpleAccessibilityService : AccessibilityService(),
                     rootNode = window.root
                     if (rootNode != null) {
                         try {
-                            if (extractTextFromNode(rootNode)) return
+                            // Use optimized BFS traversal
+                            if (extractTextFromNodeBFS(rootNode)) return
                         } finally {
                             rootNode.recycle()
                         }
@@ -339,35 +340,39 @@ class SimpleAccessibilityService : AccessibilityService(),
 //        val keypadHeight = screenHeight - rect.bottom
 //        return keypadHeight > screenHeight * 0.15
 //    }
-    private fun isKeyboardOpen(): Boolean {
-        // dealy of 100 ms
-        if (checkImeVisibility()) return true
-        if (isKeyboardOpen) return true
-        Log.d("SAS", "Checking for keyboard open before delay")
-
-        Log.d("SAS", "Checking for keyboard open after delay")
-        val windowsList = windows // Get the list of active windows
-        if (windowsList.isEmpty()) {
-            Log.d("SAS", "No active windows found")
-            return false
+    private fun isKeyboardOpenCached(): Boolean {
+        val now = System.currentTimeMillis()
+        // Return cached value if within TTL
+        if (now - lastKeyboardCheck < keyboardCacheTtlMs) {
+            return cachedKeyboardState
         }
-        for (window in windowsList) {
-            // Check if the window is an input method (keyboard) window
-            val className = window.root?.className?.toString()
-            val windowType = window.type
-
-            Log.d("SAS", "Window class name: $className, type: $windowType")
-
-            // You can identify the keyboard window by its class name or type
-            if (windowType == AccessibilityWindowInfo.TYPE_INPUT_METHOD) {
-                Log.d("SAS", "Keyboard window detected!")
+        
+        lastKeyboardCheck = now
+        
+        // Quick check using IME visibility
+        if (checkImeVisibility()) {
+            cachedKeyboardState = true
+            return true
+        }
+        
+        if (isKeyboardOpen) {
+            cachedKeyboardState = true
+            return true
+        }
+        
+        // Check windows for input method
+        cachedKeyboardState = windows.any { window ->
+            if (window.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD) {
                 isKeyboardOpen = true
                 overlayView.enableOverlayOnWindowChange(false)
                 isOverlayDisabled = true
-                return true
+                true
+            } else {
+                false
             }
         }
-        return false
+        
+        return cachedKeyboardState
     }
 
 
@@ -420,18 +425,21 @@ class SimpleAccessibilityService : AccessibilityService(),
         val bounds = Rect()
         node.getBoundsInScreen(bounds)
 
-        // Get screen width
         val displayMetrics = resources.displayMetrics
+        val density = displayMetrics.density
         val screenWidth = displayMetrics.widthPixels
 
-        // Calculate node width
-        val nodeWidth = bounds.right - bounds.left
+        // Convert to density-independent pixels
+        val nodeWidthDp = bounds.width() / density
+        val nodeHeightDp = bounds.height() / density
+        
+        // Calculate width percentage
+        val widthPercentage = (bounds.width().toFloat() / screenWidth) * 100
 
-        // Calculate percentage
-        val widthPercentage = (nodeWidth.toFloat() / screenWidth) * 100
-
-        Log.d("NODE", "Node width percentage: $widthPercentage% and height: ${bounds.height()}")
-        if ((widthPercentage > 40 && 30 < bounds.height() && bounds.height() < 400)) {
+        Log.d("NODE", "Node width: $nodeWidthDp dp, height: $nodeHeightDp dp, width%: $widthPercentage%")
+        
+        // Search boxes are typically >40% width and between ~20-120dp height
+        if (widthPercentage > 40 && nodeHeightDp in 20f..120f) {
             drawBoxOnNode(node, Color.YELLOW)
             return true
         }
@@ -442,10 +450,20 @@ class SimpleAccessibilityService : AccessibilityService(),
     private fun isSearchIcon(node: AccessibilityNodeInfo): Boolean {
         val bounds = Rect()
         node.getBoundsInScreen(bounds)
-        // Assuming search icon is usually small and located at the top right corner
-        if (bounds.width() in 1..350 && bounds.height() in 1..350 && (bounds.width()
-                .toDouble() / bounds.height().toDouble()) in 0.5..2.8
-        ) {
+        
+        // Convert to density-independent pixels
+        val density = resources.displayMetrics.density
+        val widthDp = bounds.width() / density
+        val heightDp = bounds.height() / density
+        
+        // Icons are typically 24-56dp, allow some margin (20-80dp)
+        val isIconSize = widthDp in 20f..80f && heightDp in 20f..80f
+        
+        // Aspect ratio should be roughly square (0.6 to 1.6)
+        val aspectRatio = if (heightDp > 0) widthDp / heightDp else 0f
+        val isSquarish = aspectRatio in 0.6f..1.6f
+        
+        if (isIconSize && isSquarish) {
             drawBoxOnNode(node, Color.CYAN)
             return true
         }
@@ -464,7 +482,7 @@ class SimpleAccessibilityService : AccessibilityService(),
             drawBoxOnNode(node)
             performClickAtNodeCoordinates(node)
         }
-        if (!isKeyboardOpen() && !isKeyboardOpen && !node.isClickable) {
+        if (!isKeyboardOpenCached() && !isKeyboardOpen && !node.isClickable) {
             Log.d("SAS", "Performing gesture")
             drawBoxOnNode(node)
             performClickAtNodeCoordinates(node)
@@ -493,23 +511,132 @@ class SimpleAccessibilityService : AccessibilityService(),
         // return flag
     }
 
-    // TODO: make extraction process time limited, if more time is consumed kill the process
+    // Optimized BFS traversal with priority scoring and timeout
+    private val traversalTimeoutMs = 500L
 
-    private fun extractTextFromNode(node: AccessibilityNodeInfo): Boolean {
+    /**
+     * Calculate a priority score for a node to determine how likely it is to be a search field.
+     * Higher scores indicate higher likelihood.
+     */
+    private fun calculateSearchScore(node: AccessibilityNodeInfo): Int {
+        var score = 0
+        val screenHeight = resources.displayMetrics.heightPixels
+        val bounds = Rect()
+        node.getBoundsInScreen(bounds)
+
+        // Editable fields get highest priority (direct text input)
+        if (node.isEditable) score += 50
+        if (node.className == "android.widget.EditText") score += 40
+        if (node.className == "android.widget.SearchView") score += 45
+
+        // ID match is very reliable
+        node.viewIdResourceName?.substringAfterLast(":")?.let { shortId ->
+            if (searchPattern.containsMatchIn(shortId)) score += 30
+        }
+
+        // Content description is reliable
+        node.contentDescription?.let {
+            if (searchPattern.containsMatchIn(it)) score += 20
+        }
+
+        // Hint text is a good indicator
+        node.hintText?.let {
+            if (searchPattern.containsMatchIn(it)) score += 25
+        }
+
+        // Text match (less reliable, could be just a label)
+        node.text?.let {
+            if (it.length < 15 && searchPattern.containsMatchIn(it)) score += 10
+        }
+
+        // Position bonus - search bars are usually in top 25% of screen
+        if (bounds.top < screenHeight * 0.25) score += 15
+
+        return score
+    }
+
+    /**
+     * Check if a node should be excluded (e.g., headers, titles)
+     */
+    private fun isExcludedNode(node: AccessibilityNodeInfo): Boolean {
+        val shortId = node.viewIdResourceName?.substringAfterLast(":")
+        return shortId?.let { headerPattern.containsMatchIn(it) } == true
+    }
+
+    /**
+     * BFS traversal to find search nodes with priority scoring.
+     * Returns the best candidate based on score.
+     */
+    private fun findBestSearchNode(rootNode: AccessibilityNodeInfo, startTime: Long): AccessibilityNodeInfo? {
+        val candidates = mutableListOf<SearchCandidate>()
+        val queue: ArrayDeque<AccessibilityNodeInfo> = ArrayDeque()
+        queue.add(rootNode)
+
+        while (queue.isNotEmpty()) {
+            // Timeout protection
+            if (System.currentTimeMillis() - startTime > traversalTimeoutMs) {
+                Log.w("SAS", "Search traversal timeout after ${traversalTimeoutMs}ms")
+                break
+            }
+
+            // Early exit if keyboard is already open
+            if (isKeyboardOpen) break
+
+            val node = queue.removeFirst()
+
+            // Skip excluded nodes like headers/titles
+            if (!isExcludedNode(node)) {
+                val score = calculateSearchScore(node)
+                if (score > 0) {
+                    Log.d("SAS", "Found candidate with score $score: ${node.viewIdResourceName}")
+                    candidates.add(SearchCandidate(node, score))
+                }
+            }
+
+            // Add children to queue (BFS)
+            for (i in 0 until node.childCount) {
+                node.getChild(i)?.let { queue.add(it) }
+            }
+        }
+
+        // Return the highest scoring candidate
+        return candidates.maxByOrNull { it.score }?.node
+    }
+
+    /**
+     * Optimized extraction using BFS and priority scoring.
+     * Replaces the old DFS extractTextFromNode method.
+     */
+    private fun extractTextFromNodeBFS(rootNode: AccessibilityNodeInfo): Boolean {
+        if (isKeyboardOpen) return true
+
+        val startTime = System.currentTimeMillis()
+        val bestNode = findBestSearchNode(rootNode, startTime)
+
+        if (bestNode != null) {
+            Log.d("SAS", "Best search node found: ${bestNode.viewIdResourceName}")
+            return getClickAbleNode(bestNode)
+        }
+
+        return false
+    }
+
+    // Keep old DFS method as fallback (renamed)
+    private fun extractTextFromNodeDFS(node: AccessibilityNodeInfo): Boolean {
 //        if (node.isEditable) drawBoxOnNode(node);
         if (isKeyboardOpen) return true
         val nCo = node.contentDescription?.toString()
         val nTxt = node.text?.toString()
         val nId = node.viewIdResourceName?.toString()
         val nHint = node.hintText?.toString()
-        val nodeDes = nCo?.contains("search", ignoreCase = true)
-        val nodeText = nTxt?.let { it.contains("search", ignoreCase = true) && it.length < 15 }
-        val nodeId = nId?.substringAfterLast(":")?.contains("search", ignoreCase = true)
-        val nodeHint = nHint?.contains("search", ignoreCase = true)
-        val isHeader = nId?.substringAfterLast(":")?.let { id ->
-            id.contains("header", ignoreCase = true) ||
-                    id.contains("title", ignoreCase = true)
-        }
+        
+        // Use compiled regex for faster matching
+        val nodeDes = nCo?.let { searchPattern.containsMatchIn(it) }
+        val nodeText = nTxt?.let { it.length < 15 && searchPattern.containsMatchIn(it) }
+        val nodeId = nId?.substringAfterLast(":")?.let { searchPattern.containsMatchIn(it) }
+        val nodeHint = nHint?.let { searchPattern.containsMatchIn(it) }
+        val isHeader = nId?.substringAfterLast(":")?.let { headerPattern.containsMatchIn(it) }
+        
         if (isHeader == true) {
             Log.d("SAS", "Header found")
             return false
@@ -525,7 +652,7 @@ class SimpleAccessibilityService : AccessibilityService(),
         for (i in 0 until node.childCount) {
             val childNode = node.getChild(i)
             if (childNode != null) {
-                val found = extractTextFromNode(childNode)
+                val found = extractTextFromNodeDFS(childNode)
                 childNode.recycle()
                 if (found) {
                     return true
