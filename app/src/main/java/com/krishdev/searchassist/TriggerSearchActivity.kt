@@ -11,6 +11,23 @@ class TriggerSearchActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        if (Intent.ACTION_CREATE_SHORTCUT == intent.action) {
+            val setupIntent = Intent(this, TriggerSearchActivity::class.java)
+            setupIntent.action = "com.krishdev.searchassist.TRIGGER_SEARCH"
+
+            val resultIntent = Intent()
+            resultIntent.putExtra(Intent.EXTRA_SHORTCUT_INTENT, setupIntent)
+            resultIntent.putExtra(Intent.EXTRA_SHORTCUT_NAME, getString(R.string.search_shortcut_short_label))
+            resultIntent.putExtra(
+                Intent.EXTRA_SHORTCUT_ICON_RESOURCE,
+                Intent.ShortcutIconResource.fromContext(this, R.mipmap.sa)
+            )
+
+            setResult(Activity.RESULT_OK, resultIntent)
+            finish()
+            return
+        }
+
         // No UI needed
 
         val service = SimpleAccessibilityService.getInstance()
