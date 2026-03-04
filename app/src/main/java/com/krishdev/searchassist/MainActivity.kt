@@ -33,6 +33,9 @@ class MainActivity : Activity() {
             return
         }
 
+        // Restore gesture detection state from SharedPreferences
+        isGestureDetectionActive = sharedPreferences.getBoolean("isGestureDetectionActive", false)
+
         setContentView(R.layout.activity_main)
         
         initializeViews()
@@ -93,6 +96,8 @@ class MainActivity : Activity() {
         ServiceSharedInstance.sendOverlayStatus(true)
         Log.d("MainActivity", "Accessibility Service Started")
         isGestureDetectionActive = true
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            .edit().putBoolean("isGestureDetectionActive", true).apply()
         updateStatusMessage("Gesture detection active")
     }
 
@@ -101,6 +106,8 @@ class MainActivity : Activity() {
         ServiceSharedInstance.sendOverlayStatus(false)
         Log.d("MainActivity", "Accessibility Service Stopped")
         isGestureDetectionActive = false
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            .edit().putBoolean("isGestureDetectionActive", false).apply()
         updateStatusMessage("Gesture detection stopped")
     }
     

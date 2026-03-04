@@ -135,8 +135,9 @@ class SimpleAccessibilityService : AccessibilityService(),
         debug = sharedPreferences.getBoolean("debug", false)
 
         val isFirst = sharedPreferences.getBoolean("isFirst", true)
+        val isGestureActive = sharedPreferences.getBoolean("isGestureDetectionActive", false)
 
-        if (!isFirst) {
+        if (!isFirst && isGestureActive) {
             overlayView.enableOverlayOnWindowChange(true)
         }
 
@@ -201,8 +202,11 @@ class SimpleAccessibilityService : AccessibilityService(),
                     overlayView.enableOverlayOnWindowChange(false)
                     isOverlayDisabled = true
                 } else if (isOverlayDisabled) {
-                    overlayView.enableOverlayOnWindowChange(true)
-                    isOverlayDisabled = false
+                    val prefs = getSharedPreferences("GestureLoggerPrefs", MODE_PRIVATE)
+                    if (prefs.getBoolean("isGestureDetectionActive", false)) {
+                        overlayView.enableOverlayOnWindowChange(true)
+                        isOverlayDisabled = false
+                    }
                 }
 
                 if (isInputOpen) isKeyboardOpen = true

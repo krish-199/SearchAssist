@@ -1,9 +1,24 @@
 package com.krishdev.searchassist
 
+import android.content.Context
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 
 class QuickSettingsService : TileService() {
+
+    private val PREFS_NAME = "GestureLoggerPrefs"
+
+    private fun isGestureActive(): Boolean {
+        return getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getBoolean("isGestureDetectionActive", false)
+    }
+
+    private fun setGestureActive(active: Boolean) {
+        getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit().putBoolean("isGestureDetectionActive", active).apply()
+        MainActivity.isGestureDetectionActive = active
+    }
+
     override fun onTileAdded() {
         super.onTileAdded()
         updateTile()
@@ -16,12 +31,12 @@ class QuickSettingsService : TileService() {
 
     override fun onClick() {
         super.onClick()
-        if (MainActivity.isGestureDetectionActive) {
+        if (isGestureActive()) {
             ServiceSharedInstance.sendOverlayStatus(false)
-            MainActivity.isGestureDetectionActive = false
+            setGestureActive(false)
         } else {
             ServiceSharedInstance.sendOverlayStatus(true)
-            MainActivity.isGestureDetectionActive = true
+            setGestureActive(true)
         }
         updateTile()
     }
@@ -29,7 +44,7 @@ class QuickSettingsService : TileService() {
     private fun updateTile() {
         qsTile?.let {
             it.state =
-                if (MainActivity.isGestureDetectionActive) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
+                if (isGestureActive()) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
             it.updateTile()
         }
     }
