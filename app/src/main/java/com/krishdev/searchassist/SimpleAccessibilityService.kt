@@ -457,7 +457,13 @@ class SimpleAccessibilityService : AccessibilityService(),
     }
 
     private fun performAction(node: AccessibilityNodeInfo) {
-        if (node.performAction(AccessibilityNodeInfo.ACTION_CLICK) || node.performAction(
+        // For editable fields, focus first to ensure keyboard opens
+        if (node.isEditable) {
+            node.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
+            node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+            Log.d("SAS", "Editable field: focused and clicked")
+            drawBoxOnNode(node, Color.GREEN)
+        } else if (node.performAction(AccessibilityNodeInfo.ACTION_CLICK) || node.performAction(
                 AccessibilityNodeInfo.ACTION_FOCUS
             ) || node.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS) || node.performAction(AccessibilityNodeInfo.ACTION_SELECT)
         ) {
@@ -469,7 +475,7 @@ class SimpleAccessibilityService : AccessibilityService(),
             performClickAtNodeCoordinates(node)
         }
         if (!isKeyboardOpen() && !isKeyboardOpen && !node.isClickable) {
-            Log.d("SAS", "Performing gesture")
+            Log.d("SAS", "Keyboard not open, performing gesture fallback")
             drawBoxOnNode(node)
             performClickAtNodeCoordinates(node)
         }
@@ -477,7 +483,7 @@ class SimpleAccessibilityService : AccessibilityService(),
 
     private fun getClickAbleNode(node: AccessibilityNodeInfo): Boolean {
         // drawBoxOnNode(node)
-        if ((node.isClickable && (node.isEditable)) || isSearchIcon(node) || isSearchBoxBig(node)) {
+        if (node.isClickable || node.isEditable || node.isFocusable || isSearchIcon(node) || isSearchBoxBig(node)) {
             performAction(node)
             // check if keyboard open intent has been thrown
             // Check if the keyboard is open
