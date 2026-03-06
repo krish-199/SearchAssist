@@ -137,6 +137,13 @@ class SimpleAccessibilityService : AccessibilityService(),
         val isFirst = sharedPreferences.getBoolean("isFirst", true)
         val isGestureActive = sharedPreferences.getBoolean("isGestureDetectionActive", false)
 
+        val windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+        // code is working as excepted do a cleanup of code to properly manage
+        overlayView = GestureDetectionOverlay(this, windowManager)
+        overlayView.onCreate()
+
+        val isFirst = sharedPreferences.getBoolean("isFirst", true)
+        val isGestureActive = sharedPreferences.getBoolean("isGestureDetectionActive", false)
         if (!isFirst && isGestureActive) {
             overlayView.enableOverlayOnWindowChange(true)
         }
