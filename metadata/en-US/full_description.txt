@@ -1,0 +1,22 @@
+Search Assist is an Android application that allows users to quickly access the search bar of any foreground application by swiping from the screen's edge. It uses Android Accessibility API to detect search bars or icons automatically.
+
+<b>Features:</b>
+• Edge Swipe Gesture: Trigger search bar selection by swiping from the edge of the screen
+• Customizable Edge Width: Adjust the swipe detection area width via the settings UI
+• Material 3 Design: Follows Google's Material 3 guidelines with modern UI
+• Accessibility Service: Utilizes accessibility services to interact with other apps automatically
+• Quick Access: Swipe from the edge to activate search bar detection in any app
+• Intent Support: Expose intent to trigger search bar detection from other apps or shortcuts
+
+<b>How it works:</b>
+1. Enable the accessibility service for Search Assist
+2. Adjust the edge detection width using the slider in settings
+3. Swipe from the screen edge to activate search bar detection
+4. The app automatically finds and focuses the search bar in the foreground application
+
+<b>Privacy:</b>
+Search Assist uses accessibility services only to detect and focus on search elements in other apps. No data is collected or transmitted. The app runs entirely on your device.
+
+<b>Requirements:</b>
+• Android 8.0 (API 26) or higher
+• Accessibility service permission
