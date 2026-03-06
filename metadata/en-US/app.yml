@@ -1,6 +1,6 @@
 Categories:
   - System
-  - Utilities
+  - Task
 License: MIT
 AuthorName: Krish Dev
 AuthorWebSite: https://github.com/krish-199
@@ -42,7 +42,7 @@ RepoType: git
 Repo: https://github.com/krish-199/SearchAssist
 
 Builds:
-  - versionName: '1.2.5'
+  - versionName: 1.2.5
     versionCode: 9
     commit: v1.2.5
     subdir: app
@@ -51,5 +51,5 @@ Builds:
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: '1.2.5'
+CurrentVersion: 1.2.5
 CurrentVersionCode: 9
