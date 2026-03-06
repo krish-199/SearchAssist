@@ -5,3 +5,4 @@
 - Accessibility service integration
 - Search bar auto-detection
 - ProGuard optimization enabled
+- Resource shrinking for smaller APK size
