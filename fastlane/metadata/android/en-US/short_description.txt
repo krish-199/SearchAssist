@@ -1,0 +1,1 @@
+Search Assist is an Android application that allows users to quickly access the search bar of any foreground application by swiping from the screen's edge. It uses Android Accessibility API to detect search bars or icons automatically.

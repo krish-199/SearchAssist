@@ -1,0 +1,6 @@
+- Material 3 Design implementation
+- Edge swipe gesture detection
+- Customizable edge width settings
+- Accessibility service integration
+- Search bar auto-detection
+- ProGuard optimization enabled
