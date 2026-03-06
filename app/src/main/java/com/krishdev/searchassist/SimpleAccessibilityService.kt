@@ -142,16 +142,9 @@ class SimpleAccessibilityService : AccessibilityService(),
         overlayView = GestureDetectionOverlay(this, windowManager)
         overlayView.onCreate()
 
-        val isFirst = sharedPreferences.getBoolean("isFirst", true)
-        val isGestureActive = sharedPreferences.getBoolean("isGestureDetectionActive", false)
         if (!isFirst && isGestureActive) {
             overlayView.enableOverlayOnWindowChange(true)
         }
-
-        val windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
-        // code is working as excepted do a cleanup of code to properly manage
-        overlayView = GestureDetectionOverlay(this, windowManager)
-        overlayView.onCreate()
 
         super.onServiceConnected()
         instance = this
@@ -466,10 +459,16 @@ class SimpleAccessibilityService : AccessibilityService(),
     private fun performAction(node: AccessibilityNodeInfo) {
         // For editable fields, focus first to ensure keyboard opens
         if (node.isEditable) {
-            node.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
-            node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-            Log.d("SAS", "Editable field: focused and clicked")
-            drawBoxOnNode(node, Color.GREEN)
+            val focusSuccess = node.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
+            val clickSuccess = node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+            if (focusSuccess || clickSuccess) {
+                Log.d("SAS", "Editable field: focused and clicked")
+                drawBoxOnNode(node, Color.GREEN)
+            } else {
+                Log.d("SAS", "Editable field actions failed, performing gesture fallback")
+                drawBoxOnNode(node)
+                performClickAtNodeCoordinates(node)
+            }
         } else if (node.performAction(AccessibilityNodeInfo.ACTION_CLICK) || node.performAction(
                 AccessibilityNodeInfo.ACTION_FOCUS
             ) || node.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS) || node.performAction(AccessibilityNodeInfo.ACTION_SELECT)
@@ -481,7 +480,7 @@ class SimpleAccessibilityService : AccessibilityService(),
             drawBoxOnNode(node)
             performClickAtNodeCoordinates(node)
         }
-        if (!isKeyboardOpen() && !isKeyboardOpen && !node.isClickable) {
+        if (!isKeyboardOpen() && !node.isClickable) {
             Log.d("SAS", "Keyboard not open, performing gesture fallback")
             drawBoxOnNode(node)
             performClickAtNodeCoordinates(node)
