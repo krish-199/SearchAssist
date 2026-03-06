@@ -10,7 +10,6 @@ Changelog: https://github.com/krish-199/SearchAssist/blob/main/CHANGELOG.md
 
 AutoName: Search Assist
 Summary: Quick search access via edge swipe gesture
-
 Description: |-
   Search Assist is an Android application that allows users to quickly access the
   search bar of any foreground application by swiping from the screen's edge. It
