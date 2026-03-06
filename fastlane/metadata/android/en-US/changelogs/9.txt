@@ -2,6 +2,7 @@
 
 - Material 3 Design implementation with Jetpack Compose
 - Edge swipe gesture detection for quick search access
+- Quick access trigger search functionality
 - Customizable edge width settings
 - Accessibility service integration
 - Search bar auto-detection in foreground apps

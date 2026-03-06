@@ -1,5 +1,6 @@
 - Material 3 Design implementation
 - Edge swipe gesture detection
+- Quick access trigger
 - Customizable edge width settings
 - Accessibility service integration
 - Search bar auto-detection

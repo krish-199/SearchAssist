@@ -4,7 +4,7 @@ This directory contains metadata for F-Droid app store submission.
 
 ## Structure
 
-```
+```text
 metadata/en-US/
 ├── title.txt                    # App title (50 chars max)
 ├── short_description.txt         # Short summary (80 chars max)

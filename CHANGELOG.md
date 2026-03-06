@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Technical
 - Minimum SDK: Android 8.0 (API 26)
-- Target SDK: Android 15 (API 36)
+- Target SDK: Android 16 (API 36)
 - ProGuard optimization enabled
 - Resource shrinking enabled
 

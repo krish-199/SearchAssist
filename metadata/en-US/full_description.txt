@@ -6,6 +6,7 @@ Search Assist is an Android application that allows users to quickly access the 
 • Material 3 Design: Follows Google's Material 3 guidelines with modern UI
 • Accessibility Service: Utilizes accessibility services to interact with other apps automatically
 • Quick Access: Swipe from the edge to activate search bar detection in any app
+• Intent Support: Expose intent to trigger search bar detection from other apps or shortcuts
 
 <b>How it works:</b>
 1. Enable the accessibility service for Search Assist
