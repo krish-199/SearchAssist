@@ -1,6 +1,7 @@
 
 package com.krishdev.searchassist
 
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -117,9 +118,10 @@ class InfoFragment : Fragment() {
         super.onResume()
         updateServiceStatus()
         
-        // Sync with MainActivity state
-        (activity as MainActivity)
-        isGestureDetectionActive = MainActivity.isGestureDetectionActive
+        // Sync with persisted state
+        val prefs = activity.getSharedPreferences("GestureLoggerPrefs", Context.MODE_PRIVATE)
+        isGestureDetectionActive = prefs.getBoolean("isGestureDetectionActive", false)
+        MainActivity.isGestureDetectionActive = isGestureDetectionActive
         updateToggleButton()
         updateGestureStatus()
     }
