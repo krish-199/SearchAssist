@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="UnusedAttribute"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:accessibilityHeading="true"
+            android:text="@string/config_title"
+            style="@style/AppText.Heading1"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/config_subtitle"
+            style="@style/AppText.Body2"
+            android:textColor="@color/text_secondary"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Width -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/width_label"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:labelFor="@+id/slider_width"
+                android:text="@string/config_width"
+                style="@style/AppText.Label" />
+
+            <TextView
+                android:id="@+id/width_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:importantForAccessibility="no"
+                style="@style/AppText.Value" />
+        </LinearLayout>
+
+        <SeekBar
+            android:id="@+id/slider_width"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:contentDescription="@string/config_width"
+            android:max="40"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Height -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/height_label"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:labelFor="@+id/slider_height"
+                android:text="@string/config_height"
+                style="@style/AppText.Label" />
+
+            <TextView
+                android:id="@+id/height_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:importantForAccessibility="no"
+                style="@style/AppText.Value" />
+        </LinearLayout>
+
+        <SeekBar
+            android:id="@+id/slider_height"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:contentDescription="@string/config_height"
+            android:max="100"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Vertical position -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/height_offset_label"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:labelFor="@+id/slider_height_offset"
+                android:text="@string/config_position"
+                style="@style/AppText.Label" />
+
+            <TextView
+                android:id="@+id/height_offset_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:importantForAccessibility="no"
+                style="@style/AppText.Value" />
+        </LinearLayout>
+
+        <SeekBar
+            android:id="@+id/slider_height_offset"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:contentDescription="@string/config_position"
+            android:max="100"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Advanced (debug builds only) -->
+        <TextView
+            android:id="@+id/advanced_header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:accessibilityHeading="true"
+            android:text="@string/config_advanced"
+            style="@style/AppText.Heading3"
+            android:layout_marginBottom="8dp" />
+
+        <Switch
+            android:id="@+id/toggle_debug_mode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:text="@string/config_debug_mode"
+            style="@style/AppText.Body1" />
+
+        <TextView
+            android:id="@+id/config_output"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            style="@style/AppText.Feedback"
+            android:layout_marginTop="16dp"
+            android:visibility="gone" />
+
+    </LinearLayout>
+</ScrollView>

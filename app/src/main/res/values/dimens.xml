@@ -1,1 +1,4 @@
-<resources></resources>
+<resources>
+    <!-- Content is centred and capped at this width on large screens -->
+    <dimen name="content_max_width">600dp</dimen>
+</resources>

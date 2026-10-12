@@ -10,4 +10,58 @@
     <string name="search_shortcut_short_label">Search</string>
     <string name="search_shortcut_long_label">Trigger Search</string>
     <string name="search_shortcut_disabled_message">Search shortcut disabled</string>
+
+    <!-- Common -->
+    <string name="version_format">Version %1$s</string>
+
+    <!-- Info screen -->
+    <string name="info_description">Search Assist jumps straight to the search field of the app you are using. Swipe up on an edge zone and the field is selected for you.\n\n\"Technology should adjust to us rather than requiring us to adjust to it.\"</string>
+    <string name="status_header">Status</string>
+    <string name="status_needs_permission">Accessibility off</string>
+    <string name="status_needs_permission_detail">Search Assist needs its accessibility service to detect gestures and select search fields.</string>
+    <string name="status_ready">Ready</string>
+    <string name="status_ready_detail">The service is on. Start gesture detection to show the edge zones.</string>
+    <string name="status_running">Running</string>
+    <string name="status_running_detail">Swipe up on an edge zone to jump to the search field.</string>
+    <string name="status_a11y_format">Status: %1$s. %2$s</string>
+    <string name="action_open_accessibility_settings">Open accessibility settings</string>
+    <string name="action_start_detection">Start gesture detection</string>
+    <string name="action_stop_detection">Stop gesture detection</string>
+    <string name="msg_enable_service">Turn on Search Assist, then come back here</string>
+    <string name="msg_detection_started">Gesture detection started</string>
+    <string name="msg_detection_stopped">Gesture detection stopped</string>
+    <string name="config_header">Edge zones</string>
+    <string name="config_summary_format">%1$d%% wide, %2$d%% tall, starting %3$d%% from the top, on both edges.</string>
+    <string name="action_configure_area">Adjust edge zones</string>
+    <string name="features_header">Gestures</string>
+    <string name="features_list">• Swipe up on an edge zone: select the search field (and one-handed mode on Android 12+)\n• Single tap: open the notification panel\n• Double tap: lock the device</string>
+
+    <!-- Config screen -->
+    <string name="config_title">Edge zones</string>
+    <string name="config_subtitle">Changes are saved automatically and previewed on the screen edges.</string>
+    <string name="config_width">Width</string>
+    <string name="config_height">Height</string>
+    <string name="config_position">Vertical position</string>
+    <string name="percent_format">%1$d%%</string>
+    <string name="position_format">%1$d%% from top</string>
+    <string name="config_advanced">Advanced</string>
+    <string name="config_debug_mode">Debug mode</string>
+    <string name="msg_debug_on">Debug mode enabled</string>
+    <string name="msg_debug_off">Debug mode disabled</string>
+
+    <!-- Introduction -->
+    <string name="intro_title">Welcome to Search Assist</string>
+    <string name="intro_message">Swipe up on the edge of the screen to jump straight to the search field in any app.</string>
+    <string name="intro_disclosure_header">Why accessibility access is needed</string>
+    <string name="intro_disclosure">Search Assist uses Android\'s accessibility service to:\n\n• Read the elements of the current screen, only when you trigger it, to find the search field\n• Tap or focus that search field for you\n• Notice when the keyboard or launcher is open, so the edge zones stay out of the way\n\nNothing is stored or sent anywhere. The app has no internet permission.</string>
+    <string name="intro_status_off">Accessibility service is off</string>
+    <string name="intro_status_on">Accessibility service is on</string>
+    <string name="action_continue">Continue</string>
+    <string name="action_skip">Skip for now</string>
+
+    <!-- Toasts -->
+    <string name="toast_no_search_field">No search field found</string>
+    <string name="toast_service_not_running">Accessibility service not running</string>
+    <string name="toast_ready">Search Assist is ready</string>
+    <string name="toast_needs_permission">Search Assist needs accessibility permission</string>
 </resources>

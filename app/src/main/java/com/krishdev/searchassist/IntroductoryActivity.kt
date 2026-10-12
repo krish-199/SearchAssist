@@ -1,28 +1,26 @@
 package com.krishdev.searchassist
 
+import android.app.Activity
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
+import android.provider.Settings
+import android.view.View
 import android.widget.Button
 import android.widget.TextView
-import android.app.Activity
 
+/** First-run setup: explains the accessibility access, then sends the user to enable it. */
 class IntroductoryActivity : Activity() {
 
     private lateinit var sharedPreferences: SharedPreferences
-    private lateinit var loadingMessage: TextView
-    private lateinit var continueButton: Button
-    private lateinit var welcomeMessage: TextView
-    
-    private var loadingHandler: Handler? = null
-    private var loadingRunnable: Runnable? = null
+    private lateinit var statusText: TextView
+    private lateinit var primaryButton: Button
+    private lateinit var skipButton: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        sharedPreferences = getSharedPreferences("GestureLoggerPrefs", MODE_PRIVATE)
+        sharedPreferences = getSharedPreferences(MainActivity.PREFS_NAME, MODE_PRIVATE)
         val isFirstRun = sharedPreferences.getBoolean("isFirstRun", true)
 
         if (!isFirstRun) {
@@ -31,66 +29,48 @@ class IntroductoryActivity : Activity() {
         }
 
         setContentView(R.layout.activity_introductory)
-        
-        initializeViews()
-        setupIntroduction()
-        startLoadingProgress()
+        enableEdgeToEdge()
+        findViewById<View>(R.id.intro_root)
+            .applySystemBarInsets(resources.getDimensionPixelSize(R.dimen.content_max_width))
+
+        statusText = findViewById(R.id.intro_status)
+        primaryButton = findViewById(R.id.btn_intro_primary)
+        skipButton = findViewById(R.id.btn_intro_skip)
+        skipButton.setOnClickListener { completeSetup() }
     }
-    
-    private fun initializeViews() {
-        loadingMessage = findViewById(R.id.loading_message)
-        continueButton = findViewById(R.id.btn_continue_setup)
-        welcomeMessage = findViewById(R.id.welcome_message)
-    }
-    
-    private fun setupIntroduction() {
-        // Setup continue button
-        continueButton.setOnClickListener {
-            val editor = sharedPreferences.edit()
-            editor.putBoolean("isFirstRun", false)
-            editor.apply()
-            showCompletionMessage()
-            
-            // Delay navigation to show completion message
-            Handler(Looper.getMainLooper()).postDelayed({
-                navigateToMainActivity()
-            }, 1000)
-        }
-    }
-    
-    private fun startLoadingProgress() {
-        loadingHandler = Handler(Looper.getMainLooper())
-        
-        loadingRunnable = object : Runnable {
-            override fun run() {
-                // Show continue button after simulated loading
-                continueButton.visibility = android.view.View.VISIBLE
-                loadingMessage.visibility = android.view.View.GONE
+
+    override fun onResume() {
+        super.onResume()
+        if (!::primaryButton.isInitialized) return
+
+        // Re-check after returning from the accessibility settings
+        if (isSearchAssistServiceEnabled(this)) {
+            statusText.setText(R.string.intro_status_on)
+            statusText.setTextColor(getColor(R.color.accent_secondary))
+            primaryButton.setText(R.string.action_continue)
+            primaryButton.setOnClickListener { completeSetup() }
+            skipButton.visibility = View.GONE
+        } else {
+            statusText.setText(R.string.intro_status_off)
+            statusText.setTextColor(getColor(R.color.text_secondary))
+            primaryButton.setText(R.string.action_open_accessibility_settings)
+            primaryButton.setOnClickListener {
+                // Start detection automatically once the service is on
+                MainActivity.requestStartAfterPermission(this)
+                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
             }
+            skipButton.visibility = View.VISIBLE
         }
-        
-        // Show continue button after 2 seconds
-        loadingHandler?.postDelayed(loadingRunnable!!, 2000)
     }
-    
-    private fun showCompletionMessage() {
-        // Stop loading
-        loadingHandler?.removeCallbacks(loadingRunnable!!)
-        loadingMessage.text = "Setup completed successfully!"
-        loadingMessage.visibility = android.view.View.VISIBLE
-        
-        // Hide continue button
-        continueButton.visibility = android.view.View.INVISIBLE
+
+    private fun completeSetup() {
+        sharedPreferences.edit().putBoolean("isFirstRun", false).apply()
+        navigateToMainActivity()
     }
 
     private fun navigateToMainActivity() {
         val intent = Intent(this, MainActivity::class.java)
         startActivity(intent)
         finish()
-    }
-    
-    override fun onDestroy() {
-        super.onDestroy()
-        loadingHandler?.removeCallbacks(loadingRunnable!!)
     }
 }
