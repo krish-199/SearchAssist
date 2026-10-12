@@ -1,58 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/main_root"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@color/background_primary">
+    android:layout_height="match_parent">
 
-    <!-- App Bar / Header -->
-    <LinearLayout
-        android:id="@+id/app_header"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@color/background_primary"
-        android:elevation="1dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:padding="16dp">
-
-        <TextView
-            android:id="@+id/current_section"
-            style="@style/AppText.Caption"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Main"
-            android:visibility="gone" />
-
-    </LinearLayout>
-
-    <!-- Divider -->
-
-    <!-- Fragment Container -->
+    <!-- Padded for system bars and capped in width (see applySystemBarInsets) -->
     <FrameLayout
-        android:id="@+id/fragment_container"
+        android:id="@+id/content"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_height="match_parent">
 
-    <!-- Status Bar (Optional) -->
-    <LinearLayout
-        android:id="@+id/status_bar"
+        <include
+            android:id="@+id/screen_info"
+            layout="@layout/screen_info" />
+
+        <include
+            android:id="@+id/screen_config"
+            layout="@layout/screen_config"
+            android:visibility="gone" />
+    </FrameLayout>
+
+    <!-- Full-screen live preview of the edge zones, shown on the config screen -->
+    <com.krishdev.searchassist.ScreenOverlayPreview
+        android:id="@+id/screen_overlay_preview"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="12dp"
-        android:background="@color/background_secondary"
-        android:gravity="center"
-        android:visibility="gone">
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:visibility="gone" />
 
-        <TextView
-            android:id="@+id/status_message"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Ready"
-            style="@style/AppText.Caption" />
-
-    </LinearLayout>
-
-</LinearLayout>
+</FrameLayout>

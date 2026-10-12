@@ -16,6 +16,7 @@ import android.graphics.Rect
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.View
@@ -24,7 +25,6 @@ import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
-import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import android.annotation.TargetApi
 
@@ -79,7 +79,7 @@ class SimpleAccessibilityService : AccessibilityService(),
     private val gestureActionReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == "com.krishdev.ACTION_GATHER_ACCESSIBILITY_TAGS") {
-                Log.d(
+                if (debug) Log.d(
                     "SimpleAccessibilityService",
                     "Broadcast received: gathering accessibility data"
                 )
@@ -92,7 +92,7 @@ class SimpleAccessibilityService : AccessibilityService(),
     override fun onGestureDetected(isGestureDetected: Boolean) {
         // Handle the gesture detection event here
         if (!isGestureDetected) return
-        Log.d("SimpleAccessibilityService", "Listener received: gathering accessibility data")
+        if (debug) Log.d("SimpleAccessibilityService", "Listener received: gathering accessibility data")
         // You can also trigger additional actions like accessibility-related processing
         gatherAccessibilityData()
     }
@@ -104,13 +104,29 @@ class SimpleAccessibilityService : AccessibilityService(),
         fun getInstance(): SimpleAccessibilityService? {
             return instance
         }
+
+        private const val MIN_SCORE = 2
+        // Only an editable/search-class match with a strong label reaches these
+        private const val STRONG_SCORE = 8
+        private const val EXCELLENT_SCORE = 10
+        private const val MAX_NODES = 1500
+        private const val SEARCH_BUDGET_MS = 300L
+        private const val DEBOUNCE_MS = 400L
+        private const val KEYBOARD_WAIT_MS = 300L
     }
 
     private var isKeyboardOpen = false
-    private var searchNodes = mutableListOf<AccessibilityNodeInfo>()
     private var debug = BuildConfig.DEBUG
     private lateinit var overlayView: GestureDetectionOverlay
     private var isOverlayDisabled = false
+    private var lastSearchStart = 0L
+    private var tapFallback: Runnable? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val prefs by lazy { getSharedPreferences("GestureLoggerPrefs", MODE_PRIVATE) }
+    private val windowManagerCached by lazy { getSystemService(WINDOW_SERVICE) as WindowManager }
+
+    private val searchWord = Regex("\\bsearch\\b", RegexOption.IGNORE_CASE)
+    private val notSearchBoxWords = Regex("history|recent|suggest|result|clear|voice|mic|camera|lens|image|barcode|qr", RegexOption.IGNORE_CASE)
 
     override fun onServiceConnected() {
         // Register the receiver to listen for gesture actions
@@ -129,12 +145,12 @@ class SimpleAccessibilityService : AccessibilityService(),
         serviceInfo = info
 
         ServiceSharedInstance.registerListener(this)
-        Log.d("SimpleAccessibilityService", "Service connected")
+        if (debug) Log.d("SimpleAccessibilityService", "Service connected")
 
         val sharedPreferences = getSharedPreferences("GestureLoggerPrefs", MODE_PRIVATE)
         debug = sharedPreferences.getBoolean("debug", false)
 
-        val isFirst = sharedPreferences.getBoolean("isFirst", true)
+        val isFirst = sharedPreferences.getBoolean("isFirstRun", true)
         val isGestureActive = sharedPreferences.getBoolean("isGestureDetectionActive", false)
 
         val windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
@@ -143,7 +159,7 @@ class SimpleAccessibilityService : AccessibilityService(),
         overlayView.onCreate()
 
         if (!isFirst && isGestureActive) {
-            overlayView.enableOverlayOnWindowChange(true)
+            overlayView.enableOverlayListener(true)
         }
 
         super.onServiceConnected()
@@ -152,29 +168,20 @@ class SimpleAccessibilityService : AccessibilityService(),
 
     override fun onDestroy() {
         super.onDestroy()
+        ServiceSharedInstance.unregisterListener(this)
+        if (::overlayView.isInitialized) overlayView.onDestroy()
+        tapFallback?.let { mainHandler.removeCallbacks(it) }
         instance = null
     }
 
 
-    private fun checkImeVisibility(): Boolean {
-        val inputMethodManager =
-            getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
-        val isImeVisible = inputMethodManager.isAcceptingText
-        if (isImeVisible) isKeyboardOpen = true
-        Log.d("IME_VISIBILITY", "IME is ${if (isImeVisible) "visible" else "not visible"}")
-        return isImeVisible
-    }
-
     @SuppressLint("SwitchIntDef")
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        //Log.d("SimpleAccessibilityService", "Accessibility event received ${event?.eventType}")
         if (event == null) return
 
         val focusedClassName = event.className?.toString()
-//        var isKeyboardOpen = isKeyboardOpen
         if (focusedClassName == "android.widget.EditText") {
-            Log.d("SAS", "A text field was focused, keyboard might be opening soon.")
-            isKeyboardOpen = true
+            onKeyboardSignal()
         }
 
         when (event.eventType) {
@@ -183,55 +190,30 @@ class SimpleAccessibilityService : AccessibilityService(),
                 val className = event.className?.toString()
                 if (currentPackage == null || className == null) return
 
-                val isSystemServiceOpen = currentPackage.contains("launcher", ignoreCase = true)
-                val isInputOpen = className == "android.widget.EditText"
-                val isFullScreen = isFullScreenMode()
-
-                // ignoring keyboard event usint foucsed event for diabling keybaord
+                // ignoring keyboard event using focused event for disabling keyboard
                 if (currentPackage == "com.google.android.inputmethod.latin" || currentPackage == this.packageName) return
 
-//                ServiceSharedInstance.sendForegroundWindow(currentPackage)
-//                val isSystemServiceOpen = currentPackage
-//                    .let { it.contains("launcher", ignoreCase = true) || it.contains("input", ignoreCase = true) }
-//
-                Log.d(
-                    "SAS",
-                    "Acc triggered ==> $currentPackage, $className, $isSystemServiceOpen, $isInputOpen"
-                )
-                if ((isSystemServiceOpen || isInputOpen || isFullScreen)) {
+                val isSystemServiceOpen = currentPackage.contains("launcher", ignoreCase = true)
+                val isInputOpen = className == "android.widget.EditText"
+                if (debug) Log.d("SAS", "Acc triggered ==> $currentPackage, $className, $isSystemServiceOpen, $isInputOpen")
+
+                // full screen check is only evaluated when the cheap checks don't already decide
+                if (isSystemServiceOpen || isInputOpen || isFullScreenMode()) {
                     overlayView.enableOverlayOnWindowChange(false)
                     isOverlayDisabled = true
                 } else if (isOverlayDisabled) {
-                    val prefs = getSharedPreferences("GestureLoggerPrefs", MODE_PRIVATE)
                     if (prefs.getBoolean("isGestureDetectionActive", false)) {
                         overlayView.enableOverlayOnWindowChange(true)
                         isOverlayDisabled = false
                     }
                 }
 
-                if (isInputOpen) isKeyboardOpen = true
-
-//                // Check if the window class name is related to the input method
-//                 if (event.className?.contains("InputMethod", ignoreCase = true) == true || event.className == "com.android.inputmethod.latin") {
-//                     Log.d("SAS", "Keyboard is likely open (window state changed).")
-//                 }
-//                isKeyboardOpen = true
+                if (isInputOpen) onKeyboardSignal()
             }
             AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED, AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED -> {
-                val className = event.className?.toString()
-                Log.d("SAS", "A text field edited $className")
                 overlayView.enableOverlayOnWindowChange(false)
                 isOverlayDisabled = true
             }
-
-//            AccessibilityEvent.TYPE_VIEW_FOCUSED -> {
-//                Log.d("ACC", "New view focused $focusedClassName")
-//            }
-//
-//            AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> {
-//                Log.d("SAS", "Window content changed class $focusedClassName")
-//                // You could further analyze this event to see if it's due to the keyboard opening.
-//            }
         }
     }
 
@@ -240,136 +222,78 @@ class SimpleAccessibilityService : AccessibilityService(),
     }
 
     private fun enableOneHandedMode() {
-        val windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         val displayMetrics = DisplayMetrics()
-        windowManager.defaultDisplay.getMetrics(displayMetrics)
+        windowManagerCached.defaultDisplay.getMetrics(displayMetrics)
 
         val screenWidth = displayMetrics.widthPixels
         val screenHeight = displayMetrics.heightPixels
 
-        // Define the gesture path for the swipe
+        // Starts below the display so it never lands on app content
         val path = Path().apply {
             moveTo(screenWidth / 2f, screenHeight.toFloat() + 50)
             lineTo(screenWidth / 2f, screenHeight.toFloat() + 100)
         }
-
-        // Create a GestureDescription using the path
         val gestureDescription = GestureDescription.Builder()
-            .addStroke(
-                GestureDescription.StrokeDescription(
-                    path,
-                    0,
-                    10
-                )
-            ) // Duration of 500ms for the swipe
+            .addStroke(GestureDescription.StrokeDescription(path, 0, 10))
             .build()
-
-        // Dispatch the gesture
         dispatchGesture(gestureDescription, null, null)
-        Log.d("SAS", "one handed mode enabled")
+        if (debug) Log.d("SAS", "one handed mode enabled")
     }
 
     // Method to gather accessibility data from the current screen
     fun gatherAccessibilityData() {
+        // ignore repeated triggers while a search is still in flight
+        val now = SystemClock.uptimeMillis()
+        if (now - lastSearchStart < DEBOUNCE_MS) return
+        lastSearchStart = now
+        tapFallback?.let { mainHandler.removeCallbacks(it) }
+        tapFallback = null
         isKeyboardOpen = false
-        searchNodes.clear()
-        var rootNode = rootInActiveWindow
+
+        val rootNode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getRootInActiveWindow(AccessibilityNodeInfo.FLAG_PREFETCH_DESCENDANTS_BREADTH_FIRST)
+        } else {
+            rootInActiveWindow
+        }
         if (rootNode != null) {
             try {
-                if (extractTextFromNode(rootNode)) return
-                // else if (searchNodes.isNotEmpty()) {
-                //     // Sort the searchNodes based on the width of each node
-                //     searchNodes.sortBy { node ->
-                //         val bounds = Rect()
-                //         node.getBoundsInScreen(bounds)
-                //         bounds.height() // Calculate the width of the node
-                //     }
-
-                //     // Perform the desired action on the sorted nodes
-                //     for (node in searchNodes) {
-                //         drawBoxOnNode(node, Color.MAGENTA)
-                //     }
-
-                //     // Perform action on the first node in the sorted list
-                //     performAction(searchNodes[0])
-                // }
-                else {
-                    enableOneHandedMode()
-                }
+                if (searchAndAct(rootNode)) return
+                enableOneHandedMode()
             } finally {
                 rootNode.recycle()
             }
         } else {
-            Log.d("SimpleAccessibilityService", "Root node is null using windowslist")
-            val windowList = windows
-            if (windowList.isNotEmpty()) {
-                for (window in windowList) {
-                    Log.d(
-                        "SimpleAccessibilityService",
-                        "Window Title: ${window.title}, IsActive: ${window.isActive}, IsFocused: ${window.isFocused}"
-                    )
-                    rootNode = window.root
-                    if (rootNode != null) {
-                        try {
-                            if (extractTextFromNode(rootNode)) return
-                        } finally {
-                            rootNode.recycle()
-                        }
-                    } else {
-                        Log.d(
-                            "SimpleAccessibilityService",
-                            "Window root node is null for window: ${window.title}"
-                        )
-                    }
+            if (debug) Log.d("SimpleAccessibilityService", "Root node is null using windowslist")
+            // only app windows, active/focused first (no system UI or keyboard windows)
+            val appWindows = windows
+                .filter { it.type == AccessibilityWindowInfo.TYPE_APPLICATION }
+                .sortedByDescending { (if (it.isFocused) 2 else 0) + (if (it.isActive) 1 else 0) }
+            for (window in appWindows) {
+                val windowRoot = window.root ?: continue
+                try {
+                    if (searchAndAct(windowRoot)) return
+                } finally {
+                    windowRoot.recycle()
                 }
-            } else {
-                Log.d("SimpleAccessibilityService", "No active windows available")
             }
-            Log.d("SimpleAccessibilityService", "No active window found")
         }
         showErrorToast()
     }
 
-    //    @RequiresApi(Build.VERSION_CODES.R)
-//    private fun isKeyboardOpen(): Boolean {
-//        val rect = Rect()
-//        rootInActiveWindow.getBoundsInScreen(rect)
-//        val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
-//        val displayMetrics = DisplayMetrics()
-//        val windowMetrics = windowManager.currentWindowMetrics
-//        displayMetrics.widthPixels = windowMetrics.bounds.width()
-//        displayMetrics.heightPixels = windowMetrics.bounds.height()
-//        val screenHeight = displayMetrics.heightPixels
-//        val keypadHeight = screenHeight - rect.bottom
-//        return keypadHeight > screenHeight * 0.15
-//    }
+    private fun onKeyboardSignal() {
+        isKeyboardOpen = true
+    }
+
+    private fun isKeyboardWindowVisible(): Boolean =
+        windows.any { it.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD }
+
     private fun isKeyboardOpen(): Boolean {
-        // dealy of 100 ms
-        if (checkImeVisibility()) return true
         if (isKeyboardOpen) return true
-        Log.d("SAS", "Checking for keyboard open before delay")
-
-        Log.d("SAS", "Checking for keyboard open after delay")
-        val windowsList = windows // Get the list of active windows
-        if (windowsList.isEmpty()) {
-            Log.d("SAS", "No active windows found")
-            return false
-        }
-        for (window in windowsList) {
-            // Check if the window is an input method (keyboard) window
-            val className = window.root?.className?.toString()
-            val windowType = window.type
-
-            Log.d("SAS", "Window class name: $className, type: $windowType")
-
-            // You can identify the keyboard window by its class name or type
-            if (windowType == AccessibilityWindowInfo.TYPE_INPUT_METHOD) {
-                Log.d("SAS", "Keyboard window detected!")
-                isKeyboardOpen = true
-                overlayView.enableOverlayOnWindowChange(false)
-                isOverlayDisabled = true
-                return true
-            }
+        if (isKeyboardWindowVisible()) {
+            onKeyboardSignal()
+            overlayView.enableOverlayOnWindowChange(false)
+            isOverlayDisabled = true
+            return true
         }
         return false
     }
@@ -420,142 +344,161 @@ class SimpleAccessibilityService : AccessibilityService(),
         return if (resourceId > 0) resources.getDimensionPixelSize(resourceId) else 0
     }
 
-    private fun isSearchBoxBig(node: AccessibilityNodeInfo): Boolean {
-        val bounds = Rect()
-        node.getBoundsInScreen(bounds)
+    private class Candidate(val node: AccessibilityNodeInfo, val score: Int, val bounds: Rect)
 
-        // Get screen width
-        val displayMetrics = resources.displayMetrics
-        val screenWidth = displayMetrics.widthPixels
-
-        // Calculate node width
-        val nodeWidth = bounds.right - bounds.left
-
-        // Calculate percentage
-        val widthPercentage = (nodeWidth.toFloat() / screenWidth) * 100
-
-        Log.d("NODE", "Node width percentage: $widthPercentage% and height: ${bounds.height()}")
-        if ((widthPercentage > 40 && 30 < bounds.height() && bounds.height() < 400)) {
-            drawBoxOnNode(node, Color.YELLOW)
-            return true
-        }
-        return false
+    private fun isSearchBoxBig(bounds: Rect, screenWidth: Int): Boolean {
+        val widthPercentage = bounds.width().toFloat() / screenWidth * 100
+        return widthPercentage > 40 && bounds.height() in 31..399
     }
 
-
-    private fun isSearchIcon(node: AccessibilityNodeInfo): Boolean {
-        val bounds = Rect()
-        node.getBoundsInScreen(bounds)
-        // Assuming search icon is usually small and located at the top right corner
-        if (bounds.width() in 1..350 && bounds.height() in 1..350 && (bounds.width()
-                .toDouble() / bounds.height().toDouble()) in 0.5..2.8
-        ) {
-            drawBoxOnNode(node, Color.CYAN)
-            return true
-        }
-        return false
+    private fun isSearchIcon(bounds: Rect): Boolean {
+        // Search icons are small and roughly square
+        return bounds.width() in 1..350 && bounds.height() in 1..350 &&
+                bounds.width().toDouble() / bounds.height().toDouble() in 0.5..2.8
     }
 
-    private fun performAction(node: AccessibilityNodeInfo) {
-        // For editable fields, focus first to ensure keyboard opens
-        if (node.isEditable) {
-            val focusSuccess = node.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
-            val clickSuccess = node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-            if (focusSuccess || clickSuccess) {
-                Log.d("SAS", "Editable field: focused and clicked")
-                drawBoxOnNode(node, Color.GREEN)
-            } else {
-                Log.d("SAS", "Editable field actions failed, performing gesture fallback")
-                drawBoxOnNode(node)
-                performClickAtNodeCoordinates(node)
+    /** Scores a node as a search-field candidate, or returns null if it is not one. */
+    private fun scoreNode(node: AccessibilityNodeInfo, screenWidth: Int, screenHeight: Int): Candidate? {
+        val id = node.viewIdResourceName?.substringAfterLast(":")
+        val desc = node.contentDescription?.toString()
+        val hint = node.hintText?.toString()
+        val editable = node.isEditable
+        // The text of an editable node is user input, not a label
+        val text = if (editable) null else node.text?.toString()
+
+        val idMatch = id?.contains("search", ignoreCase = true) == true
+        val hintMatch = hint?.let { searchWord.containsMatchIn(it) } == true
+        val descMatch = desc?.let { searchWord.containsMatchIn(it) } == true
+        val textMatch = text?.let { it.length < 15 && searchWord.containsMatchIn(it) } == true
+        if (!(idMatch || hintMatch || descMatch || textMatch)) return null
+        if (!node.isVisibleToUser) return null
+
+        val isHeader = id?.let {
+            it.contains("header", ignoreCase = true) || it.contains("title", ignoreCase = true)
+        } == true
+        if (isHeader && !editable) return null
+
+        val bounds = Rect()
+        node.getBoundsInScreen(bounds)
+        if (bounds.isEmpty) return null
+
+        val iconLike = isSearchIcon(bounds)
+        val boxLike = isSearchBoxBig(bounds, screenWidth)
+        if (!(node.isClickable || editable || node.isFocusable || iconLike || boxLike)) return null
+
+        var score = 0
+        if (idMatch) score += 3
+        if (hintMatch) score += 3
+        if (descMatch) score += 2
+        if (textMatch) score += 2
+        val className = node.className?.toString().orEmpty()
+        if (editable || className.contains("EditText") || className.contains("SearchView")) score += 4
+        if (node.isClickable || node.isFocusable) score += 1
+        if (iconLike) score += 1
+        if (boxLike) score += 1
+        if (bounds.top < screenHeight / 3) score += 1
+        if (!editable && listOf(id, desc, text).any { it != null && notSearchBoxWords.containsMatchIn(it) }) score -= 5
+        return if (score >= MIN_SCORE) Candidate(node, score, bounds) else null
+    }
+
+    /**
+     * Finds the best search-field candidate under [root] and activates it.
+     * Uses cheap platform lookups first and only walks the tree (breadth-first, time and node
+     * limited, skipping invisible subtrees) when they don't give a confident result.
+     */
+    private fun searchAndAct(root: AccessibilityNodeInfo): Boolean {
+        val obtained = ArrayList<AccessibilityNodeInfo>()
+        try {
+            val metrics = resources.displayMetrics
+            var best: Candidate? = null
+            fun consider(node: AccessibilityNodeInfo) {
+                val c = scoreNode(node, metrics.widthPixels, metrics.heightPixels) ?: return
+                val b = best
+                if (b == null || c.score > b.score) best = c
             }
-        } else if (node.performAction(AccessibilityNodeInfo.ACTION_CLICK) || node.performAction(
-                AccessibilityNodeInfo.ACTION_FOCUS
-            ) || node.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS) || node.performAction(AccessibilityNodeInfo.ACTION_SELECT)
-        ) {
-            Log.d("SAS", "Click action performed")
-            drawBoxOnNode(node, Color.GREEN)
-        } else {
-            Log.d("SAS", "Performing gesture")
-            drawBoxOnNode(node)
-            performClickAtNodeCoordinates(node)
-        }
-        if (!isKeyboardOpen() && !node.isClickable) {
-            Log.d("SAS", "Keyboard not open, performing gesture fallback")
-            drawBoxOnNode(node)
-            performClickAtNodeCoordinates(node)
-        }
-    }
 
-    private fun getClickAbleNode(node: AccessibilityNodeInfo): Boolean {
-        // drawBoxOnNode(node)
-        if (node.isClickable || node.isEditable || node.isFocusable || isSearchIcon(node) || isSearchBoxBig(node)) {
-            performAction(node)
-            // check if keyboard open intent has been thrown
-            // Check if the keyboard is open
-//            val isKeyboardOpen = isKeyboardOpen();
-//            Log.d("SAS", "keyboard check done: ==>$isKeyboardOpen");
-            return true
-        }
-        // if (node.isClickable) searchNodes.add(node)
-        // only go to parent node if node is focusable if not then return false
-        return false
-
-        // collect all the nodes with search in it and at the emd peromg gesutre interaction, by sorting on the basis of biggest area of the node
-        // var flag = false
-        // performClickAtNodeCoordinates(node) { event ->
-        //     flag = event
-        // };
-        // return flag
-    }
-
-    // TODO: make extraction process time limited, if more time is consumed kill the process
-
-    private fun extractTextFromNode(node: AccessibilityNodeInfo): Boolean {
-//        if (node.isEditable) drawBoxOnNode(node);
-        if (isKeyboardOpen) return true
-        val nCo = node.contentDescription?.toString()
-        val nTxt = node.text?.toString()
-        val nId = node.viewIdResourceName?.toString()
-        val nHint = node.hintText?.toString()
-        val nodeDes = nCo?.contains("search", ignoreCase = true)
-        val nodeText = nTxt?.let { it.contains("search", ignoreCase = true) && it.length < 15 }
-        val nodeId = nId?.substringAfterLast(":")?.contains("search", ignoreCase = true)
-        val nodeHint = nHint?.contains("search", ignoreCase = true)
-        val isHeader = nId?.substringAfterLast(":")?.let { id ->
-            id.contains("header", ignoreCase = true) ||
-                    id.contains("title", ignoreCase = true)
-        }
-        if (isHeader == true) {
-            Log.d("SAS", "Header found")
-            return false
-        }
-        //Perform click action on the node
-        if (nodeDes == true || nodeText == true || nodeId == true || nodeHint == true) {
-            node.text?.toString()?.let { Log.d("NODE", "text:: " + it) }
-            node.contentDescription?.toString()?.let { Log.d("NODE", "Cont:: " + it) }
-            node.viewIdResourceName?.toString()?.let { Log.d("NODE", "Id:: " + it) }
-            return getClickAbleNode(node)
-        }
-        // Recursively traverse child nodes
-        for (i in 0 until node.childCount) {
-            val childNode = node.getChild(i)
-            if (childNode != null) {
-                val found = extractTextFromNode(childNode)
-                childNode.recycle()
-                if (found) {
-                    return true
+            // 1. an input field that already has focus
+            root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)?.let {
+                obtained.add(it)
+                consider(it)
+            }
+            // 2. one cross-process call that matches text and content description
+            if ((best?.score ?: 0) < STRONG_SCORE) {
+                root.findAccessibilityNodeInfosByText("search")?.forEach {
+                    obtained.add(it)
+                    consider(it)
                 }
             }
+            // 3. bounded breadth-first walk (also catches view ids and hints)
+            if ((best?.score ?: 0) < STRONG_SCORE) {
+                val deadline = SystemClock.uptimeMillis() + SEARCH_BUDGET_MS
+                val queue = ArrayDeque<AccessibilityNodeInfo>()
+                queue.add(root)
+                var visited = 0
+                while (queue.isNotEmpty() && visited < MAX_NODES &&
+                    SystemClock.uptimeMillis() < deadline && (best?.score ?: 0) < EXCELLENT_SCORE
+                ) {
+                    val node = queue.removeFirst()
+                    visited++
+                    if (!node.isVisibleToUser) continue
+                    consider(node)
+                    for (i in 0 until node.childCount) {
+                        node.getChild(i)?.let {
+                            obtained.add(it)
+                            queue.add(it)
+                        }
+                    }
+                }
+                if (debug) Log.d("SAS", "Visited $visited nodes")
+            }
+
+            val chosen = best ?: return false
+            if (debug) Log.d("SAS", "Chosen score=${chosen.score} bounds=${chosen.bounds}")
+            activate(chosen, obtained)
+            return true
+        } finally {
+            obtained.forEach { it.recycle() }
         }
+    }
 
-        // processing collected nodes with search in them to process it later
-
-        return false
+    private fun activate(c: Candidate, obtained: MutableList<AccessibilityNodeInfo>) {
+        val node = c.node
+        var done: Boolean
+        var clickedTarget = node.isClickable
+        if (node.isEditable) {
+            // focus first so the keyboard opens
+            val focused = node.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
+            val clicked = node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+            done = focused || clicked
+        } else {
+            var target: AccessibilityNodeInfo? = node
+            var depth = 0
+            while (target != null && !target.isClickable && depth < 3) {
+                target = target.parent?.also { obtained.add(it) }
+                depth++
+            }
+            if (target != null && target.isClickable) {
+                done = target.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                if (target !== node) clickedTarget = true
+            } else {
+                done = node.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
+            }
+        }
+        drawBoxOnNode(node, if (done) Color.GREEN else Color.RED)
+        if (!done) {
+            performClickAtBounds(c.bounds)
+        } else if (!clickedTarget) {
+            // A non-clickable node only got focus: tap it if the keyboard doesn't show up
+            val bounds = Rect(c.bounds)
+            tapFallback = Runnable {
+                if (!isKeyboardWindowVisible()) performClickAtBounds(bounds)
+            }
+            mainHandler.postDelayed(tapFallback!!, KEYBOARD_WAIT_MS)
+        }
     }
 
     private fun showErrorToast() {
-        Toast.makeText(this, "No search field found", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, getString(R.string.toast_no_search_field), Toast.LENGTH_SHORT).show()
     }
 
     private fun drawStroke(centerX: Int, centerY: Int) {
@@ -579,34 +522,18 @@ class SimpleAccessibilityService : AccessibilityService(),
         }, 1000) // A
     }
 
-    private fun performClickAtNodeCoordinates(node: AccessibilityNodeInfo) {
-        // Get node coordinates
-        val rect = Rect()
-        node.getBoundsInScreen(rect)
-        Log.d("SAS", "Node coordinates: (${rect.left}, ${rect.top}, ${rect.right}, ${rect.bottom})")
-
-
-        val navigationBarHeight = getNavigationBarHeight()
-        rect.bottom -= navigationBarHeight
-
-        rect.bottom -= 10
-
-        // Calculate the center of the node
-        val centerX = (rect.left + rect.right) / 2
-        val centerY = (rect.top + rect.bottom) / 2
-
+    private fun performClickAtBounds(bounds: Rect) {
+        // getBoundsInScreen is already in screen coordinates, so no inset adjustment is needed
+        val centerX = bounds.centerX()
+        val centerY = bounds.centerY()
+        if (debug) Log.d("SAS", "Tap at ($centerX, $centerY) in $bounds")
 
         drawStroke(centerX, centerY)
 
-        // Create a gesture description for the click action
-        val path = Path().apply {
-            moveTo(centerX.toFloat(), centerY.toFloat())
-        }
+        val path = Path().apply { moveTo(centerX.toFloat(), centerY.toFloat()) }
         val gestureDescription = GestureDescription.Builder()
             .addStroke(GestureDescription.StrokeDescription(path, 0, 100))
             .build()
-
-        // Dispatch the gesture with a callback
         dispatchGesture(gestureDescription, null, null)
     }
 
@@ -614,7 +541,7 @@ class SimpleAccessibilityService : AccessibilityService(),
     fun lockDevice() {
         try {
             performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN)
-            Log.i("SAS", "Device locked successfully")
+            if (debug) Log.i("SAS", "Device locked successfully")
         } catch (e: Exception) {
             Log.e("SAS", "Failed to lock device", e)
         }
@@ -624,30 +551,17 @@ class SimpleAccessibilityService : AccessibilityService(),
     private fun isFullScreenMode(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             // API 30+: Use WindowInsets
-            val insets = (getSystemService(WINDOW_SERVICE) as? WindowManager)?.currentWindowMetrics?.windowInsets
-            val isNavigationBarVisible = insets?.isVisible(WindowInsets.Type.navigationBars()) ?: true
-            !isNavigationBarVisible
+            val insets = windowManagerCached.currentWindowMetrics.windowInsets
+            !insets.isVisible(WindowInsets.Type.navigationBars())
         } else {
-            // API < 30: Use legacy flags
-            val windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+            // API < 30: a window that covers the whole display means full screen
             val displayMetrics = DisplayMetrics()
-            windowManager.defaultDisplay.getMetrics(displayMetrics)
-        
-            // Compare current screen dimensions to app dimensions
-            val screenHeight = displayMetrics.heightPixels
-            val screenWidth = displayMetrics.widthPixels
-        
-            val windowList = windows
-            for (window in windowList) {
-                val rect = Rect()
-                window.root?.getBoundsInScreen(rect)
-        
-                if (rect.width() == screenWidth && rect.height() == screenHeight) {
-                    return true
-                }
+            windowManagerCached.defaultDisplay.getMetrics(displayMetrics)
+            val rect = Rect()
+            windows.any { window ->
+                window.getBoundsInScreen(rect)
+                rect.width() == displayMetrics.widthPixels && rect.height() == displayMetrics.heightPixels
             }
-        
-            return false
         }
     }
 }

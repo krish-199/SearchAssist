@@ -34,7 +34,7 @@ class TriggerSearchActivity : Activity() {
         if (service != null) {
             service.gatherAccessibilityData()
         } else {
-            Toast.makeText(this, "Accessibility Service not running", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.toast_service_not_running), Toast.LENGTH_SHORT).show()
             // Optionally guide user to settings
             try {
                 val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)

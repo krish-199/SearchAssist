@@ -27,7 +27,7 @@ class BootReceiver : BroadcastReceiver() {
                     initializeServices(context)
                     
                     // Show a subtle notification that the service is ready
-                    Toast.makeText(context, "SearchAssist is ready", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.toast_ready), Toast.LENGTH_SHORT).show()
                     
                     // Optional: Start main activity if needed (uncomment if required)
                     // startMainActivity(context)
@@ -35,7 +35,7 @@ class BootReceiver : BroadcastReceiver() {
                     Log.d("BootReceiver", "Accessibility service not enabled")
                     
                     // Optionally notify user that accessibility service needs to be enabled
-                    Toast.makeText(context, "SearchAssist needs accessibility permission", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, context.getString(R.string.toast_needs_permission), Toast.LENGTH_LONG).show()
                 }
             }
         }
